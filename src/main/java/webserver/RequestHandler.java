@@ -1,14 +1,24 @@
 package webserver;
 
+import db.MemoryUserRepository;
+import db.Repository;
+import http.util.HttpRequestUtils;
+import http.util.IOUtils;
+import model.User;
+
 import java.io.*;
 import java.net.Socket;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class RequestHandler implements Runnable{
     Socket connection;
     private static final Logger log = Logger.getLogger(RequestHandler.class.getName());
-
     public RequestHandler(Socket connection) {
         this.connection = connection;
     }
@@ -20,7 +30,23 @@ public class RequestHandler implements Runnable{
             BufferedReader br = new BufferedReader(new InputStreamReader(in));
             DataOutputStream dos = new DataOutputStream(out);
 
-            byte[] body = "Hello World".getBytes();
+            String startLine = br.readLine();
+            String[] startLines = startLine.split(" ");
+            String method = startLines[0];
+            String targetUrl = startLines[1];
+            System.out.println(Arrays.toString(startLines));
+            int requestContentLength = 0;
+
+            byte[] body = new byte[0];
+
+            if(method.equals("GET") && targetUrl.contains("index.html")){
+                body = Files.readAllBytes(Paths.get("./webapp" + targetUrl));
+            }
+
+            if(method.equals("GET") && targetUrl.equals("/")){
+                body = Files.readAllBytes(Paths.get("webapp/index.html" ));
+            }
+
             response200Header(dos, body.length);
             responseBody(dos, body);
 
