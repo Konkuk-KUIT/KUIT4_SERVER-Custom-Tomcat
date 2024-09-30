@@ -30,6 +30,7 @@ public class RequestHandler implements Runnable {
         try (InputStream in = connection.getInputStream(); OutputStream out = connection.getOutputStream()) {
             BufferedReader br = new BufferedReader(new InputStreamReader(in));
             DataOutputStream dos = new DataOutputStream(out);
+            Repository repository = MemoryUserRepository.getInstance();
 
             // 요청 읽기
             String requestLine = br.readLine();
@@ -76,7 +77,6 @@ public class RequestHandler implements Runnable {
                     User user = new User(userId, password, name, email);
                     log.log(Level.INFO, "user: " + user);
 
-                    Repository repository = MemoryUserRepository.getInstance();
                     repository.addUser(user);
                     log.log(Level.INFO, "findUser: " + repository.findUserById(userId));
 
@@ -122,13 +122,83 @@ public class RequestHandler implements Runnable {
                 User user = new User(userId, password, name, email);
                 log.log(Level.INFO, "user: " + user);
 
-                Repository repository = MemoryUserRepository.getInstance();
                 repository.addUser(user);
                 log.log(Level.INFO, "findUser: " + repository.findUserById(userId));
 
                 // 요구사항 4 적용
                 response302Header(dos);
             }
+
+            // 요구사항 5
+            if(method.equals("GET") && path.equals("/user/login.html")) {
+                byte[] body = Files.readAllBytes(Paths.get(WEBAPP_PATH + "/user/login.html"));
+                response200Header(dos, body.length);
+                responseBody(dos, body);
+            }
+
+            if(method.equals("POST") && path.equals("/user/login")) {
+                log.log(Level.INFO, "Login request received");
+
+                int requestContentLength = 0;
+
+                while (true) {
+                    final String line = br.readLine();
+                    if (line.equals("")) {
+                        break;
+                    }
+
+                    // header info
+                    if (line.startsWith("Content-Length")) {
+                        requestContentLength = Integer.parseInt(line.split(": ")[1]);
+                    }
+                }
+
+                String requestBody = IOUtils.readData(br, requestContentLength);
+                log.log(Level.INFO, "reqeustBody: " + requestBody);
+
+                String queryString = subtractQueryParameters(requestBody);
+
+                Map<String, String> queryParameters = HttpRequestUtils.parseQueryParameter(queryString);
+
+                queryParameters.forEach((key, value) -> log.log(Level.INFO, key + "=" + value));
+
+                String userId = queryParameters.get("userId");
+                String password = queryParameters.get("password");
+
+                log.log(Level.INFO, "user: " + userId +", password: " + password);
+
+                User findUser = repository.findUserById(userId);
+
+                // 입력한 ID에 대한 회원 자체가 존재하지 않는 경우
+                if(findUser == null) {
+                    log.log(Level.INFO, "로그인에 실패했습니다.");
+
+                    response302LoginFailureHeader(dos);
+                } else { // 입력한 ID에 대한 회원은 존재하는 경우
+
+                    String findUserPassword = findUser.getPassword();
+
+                    if (findUserPassword.equals(password)) {  // repository에서 찾아온 회원의 정보와 로그인 시 넘긴 회원의 정보가 일치하는 경우
+                        log.log(Level.INFO, "로그인에 성공했습니다.");
+
+                        response302LoginSuccessHeader(dos);
+                    } else {  // repository에서 찾아온 회원의 정보와 로그인 시 넘긴 회원의 정보가 일치하지 않는 경우
+                        log.log(Level.INFO, "로그인에 실패했습니다.");
+
+                        response302LoginFailureHeader(dos);
+                    }
+                }
+
+
+            }
+
+            if(method.equals("GET") && path.equals("/user/login_failed.html")) {
+                byte[] body = Files.readAllBytes(Paths.get(WEBAPP_PATH + "/user/login_failed.html"));
+                response200Header(dos, body.length);
+                responseBody(dos, body);
+            }
+
+
 
 
         } catch (IOException e) {
@@ -156,6 +226,29 @@ public class RequestHandler implements Runnable {
         try{
             dos.writeBytes("HTTP/1.1 302 Found \r\n");
             dos.writeBytes("Location: /index.html\r\n");
+            dos.writeBytes("\r\n");
+        } catch (IOException e) {
+            log.log(Level.SEVERE, e.getMessage());
+        }
+    }
+
+    // 요구사항 5
+    private void response302LoginSuccessHeader(DataOutputStream dos) {
+        try{
+            dos.writeBytes("HTTP/1.1 302 Found \r\n");
+            dos.writeBytes("Location: /index.html\r\n");
+            dos.writeBytes("Cookie: logined=true\r\n");  // 쿠키 설정
+            dos.writeBytes("\r\n");
+        } catch (IOException e) {
+            log.log(Level.SEVERE, e.getMessage());
+        }
+    }
+
+    // 요구사항 5
+    private void response302LoginFailureHeader(DataOutputStream dos) {
+        try{
+            dos.writeBytes("HTTP/1.1 302 Found \r\n");
+            dos.writeBytes("Location: /user/login_failed.html\r\n");
             dos.writeBytes("\r\n");
         } catch (IOException e) {
             log.log(Level.SEVERE, e.getMessage());
