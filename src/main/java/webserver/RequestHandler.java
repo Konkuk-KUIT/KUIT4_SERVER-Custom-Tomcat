@@ -3,6 +3,7 @@ package webserver;
 import db.MemoryUserRepository;
 import db.Repository;
 import http.util.HttpRequestUtils;
+import http.util.IOUtils;
 import model.User;
 
 import java.io.*;
@@ -30,7 +31,6 @@ public class RequestHandler implements Runnable {
             BufferedReader br = new BufferedReader(new InputStreamReader(in));
             DataOutputStream dos = new DataOutputStream(out);
 
-
             // 요청 읽기
             String requestLine = br.readLine();
             log.log(Level.INFO, "Request Line: " + requestLine);
@@ -51,27 +51,27 @@ public class RequestHandler implements Runnable {
             }
 
             // 요구사항 2
-            if (path.equals("/user/form.html")) {
+            if (method.equals("GET") && path.equals("/user/form.html")) {
                 byte[] body = Files.readAllBytes(Paths.get(WEBAPP_PATH + "/user/form.html"));
                 response200Header(dos, body.length);
                 responseBody(dos, body);
             }
 
-            if(path.contains("/user/signup")) {
-                log.log(Level.INFO, "Signup request received");
+            if (method.equals("GET") && path.contains("/user/signup")) {
+                log.log(Level.INFO, "Signup request received GET Method");
 
-                if(path.contains("?")) {
+                if (path.contains("?")) {
                     // URL 에서 쿼리 파라미터 분리
-                    String queryString = path.substring(path.indexOf("?") + 1);
-                    Map<String, String> queryParameter = HttpRequestUtils.parseQueryParameter(queryString);
+                    String queryString = subtractQueryParameters(path);
+                    Map<String, String> queryParameters = HttpRequestUtils.parseQueryParameter(queryString);
 
                     // 파라미터들 확인
-                    queryParameter.forEach((key, value) -> log.log(Level.INFO, key + "=" + value));
+                    queryParameters.forEach((key, value) -> log.log(Level.INFO, key + "=" + value));
 
-                    String userId = queryParameter.get("userId");
-                    String password = queryParameter.get("password");
-                    String name = queryParameter.get("name");
-                    String email = queryParameter.get("email");
+                    String userId = queryParameters.get("userId");
+                    String password = queryParameters.get("password");
+                    String name = queryParameters.get("name");
+                    String email = queryParameters.get("email");
 
                     User user = new User(userId, password, name, email);
                     log.log(Level.INFO, "user: " + user);
@@ -86,10 +86,60 @@ public class RequestHandler implements Runnable {
                 }
             }
 
+            // 요구사항 3
+            // POST 방식으로 전송하면 쿼리 파라미터가 사라진다. 즉 parseQueryParameter를 통해서 값을 얻어올 수 없다.
+            // 대신 POST 방식에서는 이 쿼리 파라미터가 body 안에 들어간다.
+            if (method.equals("POST") && path.equals("/user/signup")) {
+                log.log(Level.INFO, "Signup request received Post Method");
+
+                int requestContentLength = 0;
+
+                while (true) {
+                    final String line = br.readLine();
+                    if (line.equals("")) {
+                        break;
+                    }
+
+                    // header info
+                    if (line.startsWith("Content-Length")) {
+                        requestContentLength = Integer.parseInt(line.split(": ")[1]);
+                    }
+                }
+
+                String requestBody = IOUtils.readData(br, requestContentLength);
+                log.log(Level.INFO, "reqeustBody: " + requestBody);
+
+                String queryString = subtractQueryParameters(requestBody);
+                Map<String, String> queryParameters = HttpRequestUtils.parseQueryParameter(queryString);
+
+                // 파라미터들 확인
+                queryParameters.forEach((key, value) -> log.log(Level.INFO, key + "=" + value));
+
+                String userId = queryParameters.get("userId");
+                String password = queryParameters.get("password");
+                String name = queryParameters.get("name");
+                String email = queryParameters.get("email");
+
+                User user = new User(userId, password, name, email);
+                log.log(Level.INFO, "user: " + user);
+
+                Repository repository = MemoryUserRepository.getInstance();
+                repository.addUser(user);
+                log.log(Level.INFO, "findUser: " + repository.findUserById(userId));
+
+                byte[] body = Files.readAllBytes(Paths.get(WEBAPP_PATH + "index.html"));
+                response200Header(dos, body.length);
+                responseBody(dos, body);
+            }
+
 
         } catch (IOException e) {
             log.log(Level.SEVERE, e.getMessage());
         }
+    }
+
+    private String subtractQueryParameters(String path) {
+        return path.substring(path.indexOf("?") + 1);
     }
 
     private void response200Header(DataOutputStream dos, int lengthOfBodyContent) {
