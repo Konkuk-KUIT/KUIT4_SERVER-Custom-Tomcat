@@ -1,13 +1,23 @@
 package webserver;
 
+import db.MemoryUserRepository;
+import db.Repository;
+import http.util.HttpRequestUtils;
+import model.User;
+
 import java.io.*;
 import java.net.Socket;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class RequestHandler implements Runnable{
+public class RequestHandler implements Runnable {
     Socket connection;
     private static final Logger log = Logger.getLogger(RequestHandler.class.getName());
+    private static final String WEBAPP_PATH = "webapp/";
 
     public RequestHandler(Socket connection) {
         this.connection = connection;
@@ -16,16 +26,32 @@ public class RequestHandler implements Runnable{
     @Override
     public void run() {
         log.log(Level.INFO, "New Client Connect! Connected IP : " + connection.getInetAddress() + ", Port : " + connection.getPort());
-        try (InputStream in = connection.getInputStream(); OutputStream out = connection.getOutputStream()){
+        try (InputStream in = connection.getInputStream(); OutputStream out = connection.getOutputStream()) {
             BufferedReader br = new BufferedReader(new InputStreamReader(in));
             DataOutputStream dos = new DataOutputStream(out);
 
-            byte[] body = "Hello World".getBytes();
-            response200Header(dos, body.length);
-            responseBody(dos, body);
+
+            // 요청 읽기
+            String requestLine = br.readLine();
+            log.log(Level.INFO, "Request Line: " + requestLine);
+
+            // 요청 path 읽기
+            String[] requestParts = requestLine.split(" ");
+            String method = requestParts[0];
+            String path = requestParts[1];   // 0: HTTP Method, 1: request URL, 2: HTTP Version
+            log.log(Level.INFO, "METHOD: " + method);
+            log.log(Level.INFO, "Request Path: " + path);
+
+            //80 포트로 들어오거나, index.html로 주소가 들어올 경우 index.html을 출력하도록 함
+            if (path.equals("/") || path.equals("/index.html")) {
+                byte[] body = Files.readAllBytes(Paths.get(WEBAPP_PATH + "index.html"));
+                response200Header(dos, body.length);
+                responseBody(dos, body);
+            }
+
 
         } catch (IOException e) {
-            log.log(Level.SEVERE,e.getMessage());
+            log.log(Level.SEVERE, e.getMessage());
         }
     }
 
