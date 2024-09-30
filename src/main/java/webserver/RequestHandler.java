@@ -80,9 +80,8 @@ public class RequestHandler implements Runnable {
                     repository.addUser(user);
                     log.log(Level.INFO, "findUser: " + repository.findUserById(userId));
 
-                    byte[] body = Files.readAllBytes(Paths.get(WEBAPP_PATH + "index.html"));
-                    response200Header(dos, body.length);
-                    responseBody(dos, body);
+                    // 요구사항 4 적용
+                    response302Header(dos);
                 }
             }
 
@@ -127,9 +126,8 @@ public class RequestHandler implements Runnable {
                 repository.addUser(user);
                 log.log(Level.INFO, "findUser: " + repository.findUserById(userId));
 
-                byte[] body = Files.readAllBytes(Paths.get(WEBAPP_PATH + "index.html"));
-                response200Header(dos, body.length);
-                responseBody(dos, body);
+                // 요구사항 4 적용
+                response302Header(dos);
             }
 
 
@@ -147,6 +145,17 @@ public class RequestHandler implements Runnable {
             dos.writeBytes("HTTP/1.1 200 OK \r\n");
             dos.writeBytes("Content-Type: text/html;charset=utf-8\r\n");
             dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
+            dos.writeBytes("\r\n");
+        } catch (IOException e) {
+            log.log(Level.SEVERE, e.getMessage());
+        }
+    }
+
+    // 요구사항 4
+    private void response302Header(DataOutputStream dos) {
+        try{
+            dos.writeBytes("HTTP/1.1 302 Found \r\n");
+            dos.writeBytes("Location: /index.html\r\n");
             dos.writeBytes("\r\n");
         } catch (IOException e) {
             log.log(Level.SEVERE, e.getMessage());
