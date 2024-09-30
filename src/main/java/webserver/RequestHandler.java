@@ -42,11 +42,48 @@ public class RequestHandler implements Runnable {
             log.log(Level.INFO, "METHOD: " + method);
             log.log(Level.INFO, "Request Path: " + path);
 
+            // 요구사항 1
             //80 포트로 들어오거나, index.html로 주소가 들어올 경우 index.html을 출력하도록 함
             if (path.equals("/") || path.equals("/index.html")) {
                 byte[] body = Files.readAllBytes(Paths.get(WEBAPP_PATH + "index.html"));
                 response200Header(dos, body.length);
                 responseBody(dos, body);
+            }
+
+            // 요구사항 2
+            if (path.equals("/user/form.html")) {
+                byte[] body = Files.readAllBytes(Paths.get(WEBAPP_PATH + "/user/form.html"));
+                response200Header(dos, body.length);
+                responseBody(dos, body);
+            }
+
+            if(path.contains("/user/signup")) {
+                log.log(Level.INFO, "Signup request received");
+
+                if(path.contains("?")) {
+                    // URL 에서 쿼리 파라미터 분리
+                    String queryString = path.substring(path.indexOf("?") + 1);
+                    Map<String, String> queryParameter = HttpRequestUtils.parseQueryParameter(queryString);
+
+                    // 파라미터들 확인
+                    queryParameter.forEach((key, value) -> log.log(Level.INFO, key + "=" + value));
+
+                    String userId = queryParameter.get("userId");
+                    String password = queryParameter.get("password");
+                    String name = queryParameter.get("name");
+                    String email = queryParameter.get("email");
+
+                    User user = new User(userId, password, name, email);
+                    log.log(Level.INFO, "user: " + user);
+
+                    Repository repository = MemoryUserRepository.getInstance();
+                    repository.addUser(user);
+                    log.log(Level.INFO, "findUser: " + repository.findUserById(userId));
+
+                    byte[] body = Files.readAllBytes(Paths.get(WEBAPP_PATH + "index.html"));
+                    response200Header(dos, body.length);
+                    responseBody(dos, body);
+                }
             }
 
 
