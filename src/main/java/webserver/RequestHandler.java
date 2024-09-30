@@ -267,6 +267,14 @@ public class RequestHandler implements Runnable {
                 }
             }
 
+            // 요구사항 7
+            // .css 파일 요청 처리
+            if (path.endsWith(".css")) {
+                byte[] body = Files.readAllBytes(Paths.get(WEBAPP_PATH + path));
+                responseCssHeader(dos, body.length);  // css 응답 헤더 설정
+                responseBody(dos, body);  // css 파일 내용 전송
+            }
+
 
 
         } catch (IOException e) {
@@ -345,6 +353,19 @@ public class RequestHandler implements Runnable {
         try {
             dos.writeBytes("HTTP/1.1 302 Found \r\n");
             dos.writeBytes("Location: /user/login.html\r\n");
+            dos.writeBytes("\r\n");
+        } catch (IOException e) {
+            log.log(Level.SEVERE, e.getMessage());
+        }
+    }
+
+    // 요구사항 7
+    // css 화면 적용
+    private void responseCssHeader(DataOutputStream dos, int lengthOfBodyContent) {
+        try {
+            dos.writeBytes("HTTP/1.1 200 OK \r\n");
+            dos.writeBytes("Content-Type: text/css;charset=utf-8\r\n");  // Content-Type을 text/css로 설정
+            dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
             dos.writeBytes("\r\n");
         } catch (IOException e) {
             log.log(Level.SEVERE, e.getMessage());
