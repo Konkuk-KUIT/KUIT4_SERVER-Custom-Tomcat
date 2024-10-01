@@ -40,6 +40,7 @@ public class RequestHandler implements Runnable{
             String method = startLines[0];
             String targetUrl = startLines[1];
             int requestContentLength = 0;
+            String cookie = "";
             byte[] body = new byte[0];
             while (true) {
                 final String line = br.readLine();
@@ -49,6 +50,9 @@ public class RequestHandler implements Runnable{
                 // header info
                 if (line.startsWith("Content-Length")) {
                     requestContentLength = Integer.parseInt(line.split(": ")[1]);
+                }
+                if (line.startsWith("Cookie")) {
+                    cookie = line.split(": ")[1].split(";")[0];
                 }
             }
 
@@ -65,7 +69,6 @@ public class RequestHandler implements Runnable{
             }
 
             if (targetUrl.equals("/user/signup")) {
-                System.out.println(targetUrl);
                 String query = readData(br,requestContentLength);
                 Map<String, String> queryParameter = parseQueryParameter(query);
                 User user = new User(queryParameter.get("userId"), queryParameter.get("password"), queryParameter.get("name"), queryParameter.get("email"));
@@ -74,6 +77,43 @@ public class RequestHandler implements Runnable{
                 return;
             }
 
+            if(targetUrl.equals("/user/login.html")){
+                body = Files.readAllBytes(Paths.get("webapp/user/login.html"));
+            }
+            if(targetUrl.equals("/login_failed.html")){
+                body = Files.readAllBytes(Paths.get("./webapp/user/login_failed.html"));
+            }
+
+            if(targetUrl.equals("/user/login")){
+                String query = readData(br,requestContentLength);
+                Map<String, String> queryParameter = parseQueryParameter(query);
+                User loginUser = new User(queryParameter.get("userId"), queryParameter.get("password"), queryParameter.get("name"), queryParameter.get("email"));
+                User userById = repository.findUserById(loginUser.getUserId());
+                if(userById != null){
+                    if(userById.getPassword().equals(loginUser.getPassword())){
+                        response302HeaderWithCookie(dos,"/index.html");
+                        System.out.println("cookie = " + cookie);
+                    }
+                }
+                else{
+                    response302Header(dos,"/login_failed.html");
+                }
+                return;
+            }
+            if(targetUrl.equals("/user/userList")){
+                if(!cookie.equals("logined=true")){
+                    response302Header(dos,"/user/login.html");
+                    return;
+                }
+                body = Files.readAllBytes(Paths.get("./webapp/user/list.html"));
+            }
+
+            if(method.equals("GET") && targetUrl.endsWith(".css")){
+                body = Files.readAllBytes(targetPath);
+                response200HeaderWithCss(dos, body.length);
+                responseBody(dos,body);
+                return;
+            }
             response200Header(dos, body.length);
             responseBody(dos, body);
 
@@ -99,6 +139,19 @@ public class RequestHandler implements Runnable{
             dos.writeBytes("Content-Type: text/html;charset=utf-8\r\n");
             dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
             dos.writeBytes("\r\n");
+            dos.flush();
+        } catch (IOException e) {
+            log.log(Level.SEVERE, e.getMessage());
+        }
+    }
+
+    private void response200HeaderWithCss(DataOutputStream dos, int lengthOfBodyContent) {
+        try {
+            dos.writeBytes("HTTP/1.1 200 OK \r\n");
+            dos.writeBytes("Content-Type: text/css;charset=utf-8\r\n");
+            dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
+            dos.writeBytes("\r\n");
+            dos.flush();
         } catch (IOException e) {
             log.log(Level.SEVERE, e.getMessage());
         }
@@ -112,7 +165,17 @@ public class RequestHandler implements Runnable{
             log.log(Level.SEVERE, e.getMessage());
         }
     }
-
+    private void response302HeaderWithCookie(DataOutputStream dos, String path) {
+        try {
+            dos.writeBytes("HTTP/1.1 302 Redirect \r\n");
+            dos.writeBytes("Location: " + path + "\r\n");
+            dos.writeBytes("Set-Cookie: logined=true" + "\r\n");
+            dos.writeBytes("\r\n");
+            dos.flush();
+        } catch (IOException e) {
+            log.log(Level.SEVERE, e.getMessage());
+        }
+    }
 
 
 }
