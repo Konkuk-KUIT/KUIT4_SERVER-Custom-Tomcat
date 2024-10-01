@@ -1,12 +1,12 @@
-package webserver;
+package constant;
 
-public enum StatusCode {
+public enum HttpStatus {
     REDIRECT("302 REDIRECT"),
     OK("200 OK");
 
     private final String status;
 
-    StatusCode(String status) {
+    HttpStatus(String status) {
         this.status = status;
     }
 

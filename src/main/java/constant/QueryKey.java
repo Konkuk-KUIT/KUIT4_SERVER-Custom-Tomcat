@@ -1,4 +1,4 @@
-package webserver;
+package constant;
 
 public enum QueryKey {
     USER_ID("userId"),

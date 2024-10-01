@@ -1,4 +1,4 @@
-package webserver;
+package constant;
 
 public enum HttpMethod {
     GET("GET"), POST("POST");
