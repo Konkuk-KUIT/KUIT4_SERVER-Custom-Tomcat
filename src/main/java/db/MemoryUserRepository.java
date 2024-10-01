@@ -23,6 +23,7 @@ public class MemoryUserRepository implements Repository{
 
     public void addUser(User user) {
         users.put(user.getUserId(), user);
+        System.out.println(user.getUserId()+"님 이 회원가입 하였습니다.");
     }
 
     public User findUserById(String userId) {
