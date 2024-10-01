@@ -39,7 +39,18 @@ public class RequestHandler implements Runnable{
             String[] startLines = startLine.split(" ");
             String method = startLines[0];
             String targetUrl = startLines[1];
+            int requestContentLength = 0;
             byte[] body = new byte[0];
+            while (true) {
+                final String line = br.readLine();
+                if (line.equals("")) {
+                    break;
+                }
+                // header info
+                if (line.startsWith("Content-Length")) {
+                    requestContentLength = Integer.parseInt(line.split(": ")[1]);
+                }
+            }
 
             Path targetPath = Paths.get("./webapp" + targetUrl);
             if(method.equals("GET") && targetUrl.equals("/index.html")){
@@ -53,9 +64,10 @@ public class RequestHandler implements Runnable{
                 body = Files.readAllBytes(targetPath);
             }
 
-            if (method.equals("GET") && targetUrl.contains("/user/signup")) {
-                String queryString = (targetUrl.split("\\?"))[1];
-                Map<String, String> queryParameter = parseQueryParameter(queryString);
+            if (targetUrl.equals("/user/signup")) {
+                System.out.println(targetUrl);
+                String query = readData(br,requestContentLength);
+                Map<String, String> queryParameter = parseQueryParameter(query);
                 User user = new User(queryParameter.get("userId"), queryParameter.get("password"), queryParameter.get("name"), queryParameter.get("email"));
                 repository.addUser(user);
                 response302Header(dos,"/index.html");
