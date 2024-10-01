@@ -35,7 +35,6 @@ public class HttpRequest {
 
     private static String readBody(BufferedReader br, HttpRequestHeader requestHeader) throws IOException {
         if (!requestHeader.isEmptyContent()) {
-            System.out.println("requestHeader = " + requestHeader.getContentLength());
             return readData(br, requestHeader.getContentLength());
         }
         return "";
@@ -63,7 +62,6 @@ public class HttpRequest {
 
     public Map<String, String> getQueryParametersfromBody() {
         //POST 메서드인 경우
-        System.out.println("body = " + body);
         return HttpRequestUtils.parseQueryParameter(body);
     }
     public Map<String, String> getQueryParametersfromUrl() {
@@ -72,7 +70,5 @@ public class HttpRequest {
         String queryString = url.substring(url.lastIndexOf("?") + 1);
         return HttpRequestUtils.parseQueryParameter(queryString);
     }
-
-
 
 }
