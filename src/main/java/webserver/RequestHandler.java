@@ -51,6 +51,19 @@ public class RequestHandler implements Runnable{
                     if(isSignup(resource)){
                         addUserInRepository(resource, method);
                         redirectToHome(dos);
+                    } else if(isUserList(resource)) {
+                        // 클라이언트에서 유저리스트로 요청이 들어온 상황
+
+                        // 1. 로그인이 된 상태인지 확인
+                        if(isLoggined(br)){
+                            System.out.println("ㅋ");
+                            byte[] welcomePage = getWelcomePage("/user/list.html");
+                            response200Header(dos, welcomePage.length);
+                            responseBody(dos, welcomePage);
+                        } else {
+                            redirectToHome(dos);
+                        }
+
                     } else {
                         // 기본 리소스 경로 설정
                         byte[] welcomePage = getWelcomePage(resource);
@@ -106,6 +119,30 @@ public class RequestHandler implements Runnable{
         }
     }
 
+    private boolean isLoggined(BufferedReader br) {
+
+        boolean isLoggined = false;
+        try {
+            // 헤더 읽기
+            String line;
+            System.out.println("Header: " );
+            while (!(line = br.readLine()).isEmpty()) {
+                System.out.println("\t" + line);
+                if (line.startsWith("Cookie")) {
+                    isLoggined = Boolean.parseBoolean(line.split("=")[1]);
+                }
+            }
+
+        } catch (IOException | NoSuchElementException e) {
+            log.log(Level.SEVERE, e.getMessage());
+        }
+        return isLoggined;
+    }
+
+    private boolean isUserList(String resource) {
+        return resource.split("\\?")[0].equals("/user/userList");
+    }
+
     private void redirectHomeByLogin(DataOutputStream dos) {
         try {
             dos.writeBytes("HTTP/1.1 302 Found \r\n");
@@ -136,7 +173,7 @@ public class RequestHandler implements Runnable{
             String line;
             System.out.println("Header: " );
             while (!(line = br.readLine()).isEmpty()) {
-//                System.out.println("\t" + line);
+                System.out.println("\t" + line);
                 if (line.startsWith("Content-Length")) {
                     contentLength = Integer.parseInt(line.split(":")[1].trim());
                 }
