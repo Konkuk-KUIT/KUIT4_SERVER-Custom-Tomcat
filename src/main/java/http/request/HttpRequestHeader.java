@@ -8,15 +8,18 @@ import static constant.HttpHeader.COOKIE;
 
 public class HttpRequestHeader {
 
-    private static int requestContentLength = 0;
-    private static boolean isLogin = false;
+    private int requestContentLength;
+    private boolean LoginStatus;
 
-    private HttpRequestHeader(int requestContentLength, boolean isLogin) {
+    private HttpRequestHeader(int requestContentLength, boolean LoginStatus) {
         this.requestContentLength = requestContentLength;
-        this.isLogin = isLogin;
+        this.LoginStatus = LoginStatus;
     }
 
     public static HttpRequestHeader from(BufferedReader br) throws IOException {
+        int contentLength = 0;
+        boolean isLogin = false;
+
         //header 추출
         while (true) {
             final String line = br.readLine();
@@ -25,15 +28,16 @@ public class HttpRequestHeader {
             }
             // header info
             if (line.startsWith(CONTENT_LENGTH.getHeader())) {
-                requestContentLength = Integer.parseInt(line.split(": ")[1]);
+                contentLength = Integer.parseInt(line.split(": ")[1]);
             }
 
             if (line.startsWith(COOKIE.getHeader()) && line.contains("logined=true")) {
                 isLogin = true;
             }
+
         }
 
-        return new HttpRequestHeader(requestContentLength, isLogin);
+        return new HttpRequestHeader(contentLength, isLogin);
     }
 
     public boolean isEmptyContent() {
@@ -42,5 +46,9 @@ public class HttpRequestHeader {
 
     public int getContentLength() {
         return requestContentLength;
+    }
+
+    public boolean getLoginStatus() {
+        return LoginStatus;
     }
 }
