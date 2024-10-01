@@ -56,9 +56,8 @@ public class RequestHandler implements Runnable{
 
                         // 1. 로그인이 된 상태인지 확인
                         if(isLoggined(br)){
-                            System.out.println("ㅋ");
                             byte[] welcomePage = getWelcomePage("/user/list.html");
-                            response200Header(dos, welcomePage.length);
+                            response200Header(dos, welcomePage.length,"html");
                             responseBody(dos, welcomePage);
                         } else {
                             redirectToHome(dos);
@@ -67,7 +66,14 @@ public class RequestHandler implements Runnable{
                     } else {
                         // 기본 리소스 경로 설정
                         byte[] welcomePage = getWelcomePage(resource);
-                        response200Header(dos, welcomePage.length);
+
+                        if(isRequestCSS(resource)){
+                            response200Header(dos, welcomePage.length,"css");
+                        } else {
+                            response200Header(dos, welcomePage.length,"html");
+                        }
+
+
                         responseBody(dos, welcomePage);
                     }
                     break;
@@ -116,6 +122,15 @@ public class RequestHandler implements Runnable{
 
         } catch (IOException e) {
             log.log(Level.SEVERE,e.getMessage());
+        }
+    }
+
+    private static boolean isRequestCSS(String resource) {
+        String[] splitByPeriod = resource.split("\\.");
+        if(splitByPeriod.length > 1){
+            return splitByPeriod[1].equals("css");
+        } else {
+            return false;
         }
     }
 
@@ -249,10 +264,10 @@ public class RequestHandler implements Runnable{
         return welcomePage;
     }
 
-    private void response200Header(DataOutputStream dos, int lengthOfBodyContent) {
+    private void response200Header(DataOutputStream dos, int lengthOfBodyContent, String contentType) {
         try {
             dos.writeBytes("HTTP/1.1 200 OK \r\n");
-            dos.writeBytes("Content-Type: text/html;charset=utf-8\r\n");
+            dos.writeBytes("Content-Type: text/"+contentType+";charset=utf-8\r\n");
             dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
             dos.writeBytes("\r\n");
         } catch (IOException e) {
