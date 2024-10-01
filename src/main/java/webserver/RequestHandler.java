@@ -2,6 +2,8 @@ package webserver;
 
 import java.io.*;
 import java.net.Socket;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -20,9 +22,24 @@ public class RequestHandler implements Runnable{
             BufferedReader br = new BufferedReader(new InputStreamReader(in));
             DataOutputStream dos = new DataOutputStream(out);
 
-            byte[] body = "Hello World".getBytes();
-            response200Header(dos, body.length);
+            String line = br.readLine();
+            if (line == null) {
+                return;
+            }
+
+            String[] tokens = line.split(" ");
+            String url = tokens[1];
+
+            byte[] body;
+            if ("/".equals(url) || "/index.html".equals(url)) {
+                body = Files.readAllBytes(Paths.get("./webapp/index.html"));
+                response200Header(dos, body.length);
+            } else {
+                body = "404 Not Found".getBytes();
+                response404Header(dos, body.length);
+            }
             responseBody(dos, body);
+
 
         } catch (IOException e) {
             log.log(Level.SEVERE,e.getMessage());
@@ -32,6 +49,17 @@ public class RequestHandler implements Runnable{
     private void response200Header(DataOutputStream dos, int lengthOfBodyContent) {
         try {
             dos.writeBytes("HTTP/1.1 200 OK \r\n");
+            dos.writeBytes("Content-Type: text/html;charset=utf-8\r\n");
+            dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
+            dos.writeBytes("\r\n");
+        } catch (IOException e) {
+            log.log(Level.SEVERE, e.getMessage());
+        }
+    }
+
+    private void response404Header(DataOutputStream dos, int lengthOfBodyContent) {
+        try {
+            dos.writeBytes("HTTP/1.1 404 Not Found \r\n");
             dos.writeBytes("Content-Type: text/html;charset=utf-8\r\n");
             dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
             dos.writeBytes("\r\n");
