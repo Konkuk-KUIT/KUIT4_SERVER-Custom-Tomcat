@@ -10,6 +10,7 @@ import java.net.Socket;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.logging.Level;
@@ -32,9 +33,6 @@ public class RequestHandler implements Runnable{
             DataOutputStream dos = new DataOutputStream(out);
 
             String requestLine = br.readLine();
-//            for(String line = br.readLine(); !line.isEmpty() ; line = br.readLine()) {
-//                System.out.println("\t" + line);
-//            }
 
             System.out.println("Request Line: " + requestLine);
 
@@ -48,84 +46,103 @@ public class RequestHandler implements Runnable{
 
             switch (method) {
                 case "GET":
-                    if(isSignup(resource)){
-                        addUserInRepository(resource, method);
-                        redirectToHome(dos);
-                    } else if(isUserList(resource)) {
-                        // 클라이언트에서 유저리스트로 요청이 들어온 상황
-
-                        // 1. 로그인이 된 상태인지 확인
-                        if(isLoggined(br)){
-                            byte[] welcomePage = getWelcomePage("/user/list.html");
-                            response200Header(dos, welcomePage.length,"html");
-                            responseBody(dos, welcomePage);
-                        } else {
-                            redirectToHome(dos);
-                        }
-
-                    } else {
-                        // 기본 리소스 경로 설정
-                        byte[] welcomePage = getWelcomePage(resource);
-
-                        if(isRequestCSS(resource)){
-                            response200Header(dos, welcomePage.length,"css");
-                        } else {
-                            response200Header(dos, welcomePage.length,"html");
-                        }
-
-
-                        responseBody(dos, welcomePage);
-                    }
+                    handleGetRequest(resource, method, dos, br);
                     break;
 
                 case "POST":
-                    if(isSignup(resource)){
-
-                        String body = getBodyInPOST(br);
-                        addUserInRepository(body, method);
-
-                        redirectToHome(dos);
-                    }
-                    if(isLogin(resource)){
-
-                        String body = getBodyInPOST(br);
-                        String[] idAndPassWord = body.split("&");
-
-                        String inputUserId = idAndPassWord[0].split("=")[1];
-                        String inputUserPW = idAndPassWord[0].split("=")[1];
-
-                        User UserFoundById = MemoryUserRepository.getInstance().findUserById(inputUserId);
-                        if(UserFoundById != null){
-
-                            if(UserFoundById.getPassword().equals(inputUserPW)){
-                                //비밀번호까지 일치 - 로그인 성공
-                                redirectHomeByLogin(dos);
-
-                            } else {
-                                //비밀번호가 틀렸을 경우
-                                redirectLoginFailed(dos);
-                            }
-
-                        } else {
-                            // id가 없을 경우
-                            redirectLoginFailed(dos);
-                        }
-                    }
+                    handlePostRequest(resource, method, dos, br);
                     break;
 
                 default:
                     break;
             }
 
-
-
-
         } catch (IOException e) {
             log.log(Level.SEVERE,e.getMessage());
         }
     }
 
-    private static boolean isRequestCSS(String resource) {
+    private void handleGetRequest(String resource, String method, DataOutputStream dos, BufferedReader br) throws IOException {
+        if(isSignupRequest(resource)){
+            processSignup(resource, method, dos);
+        } else if(isUserListRequest(resource)) {
+            processUserListRequest(resource, dos, br);
+        } else {
+            processGetPageRequest(resource, dos);
+        }
+    }
+
+    private void handlePostRequest(String resource, String method, DataOutputStream dos, BufferedReader br) {
+        String body = getBodyInPOST(br);
+        if(isSignupRequest(resource)){
+            processSignup(body, method, dos);
+        }
+        if(isLoginRequest(resource)){
+            processLogin(dos, body);
+        }
+    }
+
+    private void processLogin(DataOutputStream dos, String body) {
+        String[] idAndPassword = body.split("&");
+
+        if(isUserExist(idAndPassword)){
+            redirectHomeByLogin(dos);
+        } else {
+            redirectLoginFailed(dos);
+        }
+    }
+
+    private boolean isUserExist(String[] idAndPassword) {
+        String inputUserId = idAndPassword[0].split("=")[1];
+        String inputUserPW = idAndPassword[1].split("=")[1];
+
+        User UserFoundById = MemoryUserRepository.getInstance().findUserById(inputUserId);
+        if(UserFoundById != null){
+            return isPasswordMatch(UserFoundById, inputUserPW);
+        } else {
+            // id가 없을 경우
+            return false;
+        }
+    }
+
+    private boolean isPasswordMatch(User UserFoundById, String inputUserPW) {
+        if(UserFoundById.getPassword().equals(inputUserPW)){
+            //비밀번호까지 일치 - 로그인 성공
+            return true;
+
+        } else {
+            //비밀번호가 틀렸을 경우
+            return false;
+        }
+    }
+
+
+    private void processGetPageRequest(String resource, DataOutputStream dos) throws IOException {
+        // 기본 리소스 경로 설정
+        byte[] page = getPageinWebappFolder(resource);
+
+        response200Header(dos, page.length, isRequestingCSS(resource) ? "css" : "html");
+
+        responseBody(dos, page);
+    }
+
+    private void processUserListRequest(String resource, DataOutputStream dos, BufferedReader br) throws IOException {
+        // 클라이언트에서 유저리스트로 요청이 들어온 상황
+
+        // 1. 로그인이 된 상태인지 확인
+        if(isLoggined(br)){
+            processGetPageRequest(resource,dos);
+        } else {
+            redirectToHome(dos);
+        }
+    }
+
+    private void processSignup(String resource, String method, DataOutputStream dos) {
+        addUserInRepository(resource, method);
+        redirectToHome(dos);
+    }
+
+    private static boolean isRequestingCSS(String resource) {
         String[] splitByPeriod = resource.split("\\.");
         if(splitByPeriod.length > 1){
             return splitByPeriod[1].equals("css");
@@ -135,26 +152,44 @@ public class RequestHandler implements Runnable{
     }
 
     private boolean isLoggined(BufferedReader br) {
+            String line = getCookieContainingLineFromHeader(br);
 
-        boolean isLoggined = false;
-        try {
-            // 헤더 읽기
-            String line;
-            System.out.println("Header: " );
-            while (!(line = br.readLine()).isEmpty()) {
-                System.out.println("\t" + line);
-                if (line.startsWith("Cookie")) {
-                    isLoggined = Boolean.parseBoolean(line.split("=")[1]);
-                }
+            if(line != null){
+                return parseLoginStatusFromCookie(line);
+            } else {
+                return false;
             }
 
-        } catch (IOException | NoSuchElementException e) {
-            log.log(Level.SEVERE, e.getMessage());
-        }
-        return isLoggined;
     }
 
-    private boolean isUserList(String resource) {
+    private String getCookieContainingLineFromHeader(BufferedReader br) {
+        // 헤더 읽기
+        try {
+            String lineFromBr;
+            while (!(lineFromBr = br.readLine()).isEmpty()) {
+                //TODO 풀리퀘 올릴때 삭제
+                System.out.println("\t" + lineFromBr);
+
+                if (lineFromBr.startsWith("Cookie")) {
+                    return lineFromBr;
+                }
+            }
+        } catch (IOException e) {
+            log.log(Level.SEVERE, e.getMessage());
+        }
+        return null;
+    }
+
+    private boolean parseLoginStatusFromCookie(String line) {
+        try {
+            return Boolean.parseBoolean(line.split("=")[1]);
+        } catch (ArrayIndexOutOfBoundsException e) {
+            log.log(Level.WARNING, "Invalid cookie format: " + line);
+            return false;
+        }
+    }
+
+    private boolean isUserListRequest(String resource) {
         return resource.split("\\?")[0].equals("/user/userList");
     }
 
@@ -210,7 +245,7 @@ public class RequestHandler implements Runnable{
         return "";
     }
 
-    private boolean isLogin(String resource) {
+    private boolean isLoginRequest(String resource) {
         return resource.equals("/user/login");
     }
 
@@ -226,42 +261,45 @@ public class RequestHandler implements Runnable{
     }
 
     private void addUserInRepository(String resource, String method) {
+        String queries = getLineIncludingQueries(resource, method);
+
+        String decodedQueries = URLDecoder.decode(queries, StandardCharsets.UTF_8);
+
+        Map<String,String> queryMap = HttpRequestUtils.parseQueryParameter(decodedQueries);
+
+        User user = new User(queryMap.get("userId"),queryMap.get("password"),queryMap.get("name"),queryMap.get("email"));
+
+        MemoryUserRepository.getInstance().addUser(user);
+    }
+
+    private static String getLineIncludingQueries(String resource, String method) {
         String queries;
         if (method.equals("GET")) {
             queries = resource.split("&")[1];
         } else {
             queries = resource;
         }
-
-        String decodedQueries = URLDecoder.decode(queries, StandardCharsets.UTF_8);
-        System.out.println(decodedQueries);
-
-        Map<String,String> queryMap = HttpRequestUtils.parseQueryParameter(decodedQueries);
-
-        queryMap.forEach((key, value) -> {
-            System.out.println(key + ": " + value);
-        });
-
-        User user = new User(queryMap.get("userId"),queryMap.get("password"),queryMap.get("name"),queryMap.get("email"));
-
-        MemoryUserRepository.getInstance().addUser(user);
-
-        MemoryUserRepository.getInstance().findAll().forEach(System.out::println);
+        return queries;
     }
 
-    private boolean isSignup(String resource) {
+    private boolean isSignupRequest(String resource) {
         return resource.split("\\?")[0].equals("/user/signup");
     }
 
-    private static byte[] getWelcomePage(String resource) throws IOException {
+    private static byte[] getPageinWebappFolder(String resource) throws IOException {
+        byte[] page = Files.readAllBytes(convertToPath(resource));
 
+        return page;
+    }
+
+    private static Path convertToPath(String resource) {
         if (resource.equals("/")) {
             resource = "/index.html";
         }
-        File file = new File("./webapp" + resource);
-        byte[] welcomePage = Files.readAllBytes(file.toPath());
-
-        return welcomePage;
+        if(resource.equals("/user/userList")){
+            resource = "/user/list.html";
+        }
+        return Path.of("./webapp" + resource);
     }
 
     private void response200Header(DataOutputStream dos, int lengthOfBodyContent, String contentType) {
