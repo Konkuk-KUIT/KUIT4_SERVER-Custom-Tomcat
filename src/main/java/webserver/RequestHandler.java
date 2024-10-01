@@ -11,6 +11,7 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -30,38 +31,11 @@ public class RequestHandler implements Runnable{
             BufferedReader br = new BufferedReader(new InputStreamReader(in));
             DataOutputStream dos = new DataOutputStream(out);
 
-
             String requestLine = br.readLine();
-
-
-//            String decodedLine = URLDecoder.decode(requestLine, StandardCharsets.UTF_8.name());
-//            System.out.println(decodedLine);
-//            Map<String,String> queryMap= HttpRequestUtils.parseQueryParameter(decodedLine);
-
-//            StringBuilder requestBody = new StringBuilder();
-//            String line;
-//            while ((line = br.readLine()) != null) {
-//                requestBody.append(line);
-//                requestBody.append("\n");
+//            for(String line = br.readLine(); !line.isEmpty() ; line = br.readLine()) {
+//                System.out.println("\t" + line);
 //            }
-//            System.out.println("Request Body: " + requestBody.toString());
 
-//            String[] tokens = requestLine.split(" ");
-//            String method = tokens[0];  // HTTP 메서드 (GET 등)
-//            String resource = tokens[1];  // 요청된 리소스 (예: /, /index.html)
-//
-//            String pageName = resource.split("\\?")[0];
-//            String queryString = resource.split("\\?")[1];
-//
-//            resource = URLDecoder.decode(queryString, StandardCharsets.UTF_8.name());
-//            System.out.println(queryString);
-//            Map<String,String> queryMap = HttpRequestUtils.parseQueryParameter(queryString);
-//
-//            // 기본 리소스 경로 설정
-//            if (pageName.equals("/")) {
-//                pageName = "/index.html";
-//            }
-//
             System.out.println("Request Line: " + requestLine);
 
             if (requestLine == null || requestLine.isEmpty()) {
@@ -76,7 +50,7 @@ public class RequestHandler implements Runnable{
                 case "GET":
                     if(isSignup(resource)){
                         addUserInRepository(resource, method);
-                        redirectUser(dos);
+                        redirectToHome(dos);
                     } else {
                         // 기본 리소스 경로 설정
                         byte[] welcomePage = getWelcomePage(resource);
@@ -87,25 +61,36 @@ public class RequestHandler implements Runnable{
 
                 case "POST":
                     if(isSignup(resource)){
-                        // 헤더 읽기
-                        int contentLength = 0;
-                        String line;
-                        System.out.println("Header: " );
-                        while (!(line = br.readLine()).isEmpty()) {
-                            System.out.println("\t" + line);
-                            if (line.startsWith("Content-Length")) {
-                                contentLength = Integer.parseInt(line.split(":")[1].trim());
+
+                        String body = getBodyInPOST(br);
+                        addUserInRepository(body, method);
+
+                        redirectToHome(dos);
+                    }
+                    if(isLogin(resource)){
+
+                        String body = getBodyInPOST(br);
+                        String[] idAndPassWord = body.split("&");
+
+                        String inputUserId = idAndPassWord[0].split("=")[1];
+                        String inputUserPW = idAndPassWord[0].split("=")[1];
+
+                        User UserFoundById = MemoryUserRepository.getInstance().findUserById(inputUserId);
+                        if(UserFoundById != null){
+
+                            if(UserFoundById.getPassword().equals(inputUserPW)){
+                                //비밀번호까지 일치 - 로그인 성공
+                                redirectHomeByLogin(dos);
+
+                            } else {
+                                //비밀번호가 틀렸을 경우
+                                redirectLoginFailed(dos);
                             }
-                        }
 
-                        // POST 요청의 경우, IOUtils를 사용해 바디 읽기
-                        if (contentLength > 0) {
-                            String body = IOUtils.readData(br, contentLength);  // IOUtils 활용
-                            System.out.println("Body: " + body);
-                            addUserInRepository(body, method);
+                        } else {
+                            // id가 없을 경우
+                            redirectLoginFailed(dos);
                         }
-
-                        redirectUser(dos);
                     }
                     break;
 
@@ -121,7 +106,63 @@ public class RequestHandler implements Runnable{
         }
     }
 
-    private void redirectUser(DataOutputStream dos) {
+    private void redirectHomeByLogin(DataOutputStream dos) {
+        try {
+            dos.writeBytes("HTTP/1.1 302 Found \r\n");
+            dos.writeBytes("Location: http://localhost:80/\r\n");
+            dos.writeBytes("Set-Cookie: logined=true; Path=/\n\r\n");
+            dos.writeBytes("\r\n");
+            dos.flush();
+        } catch (IOException e) {
+            log.log(Level.SEVERE, e.getMessage());
+        }
+    }
+
+    private void redirectLoginFailed(DataOutputStream dos) {
+        try {
+            dos.writeBytes("HTTP/1.1 302 Found \r\n");
+            dos.writeBytes("Location: http://localhost:80/user/login_failed.html\r\n");
+            dos.writeBytes("\r\n");
+            dos.flush();
+        } catch (IOException e) {
+            log.log(Level.SEVERE, e.getMessage());
+        }
+    }
+
+    private String getBodyInPOST(BufferedReader br) {
+        try {
+            // 헤더 읽기
+            int contentLength = 0;
+            String line;
+            System.out.println("Header: " );
+            while (!(line = br.readLine()).isEmpty()) {
+//                System.out.println("\t" + line);
+                if (line.startsWith("Content-Length")) {
+                    contentLength = Integer.parseInt(line.split(":")[1].trim());
+                }
+            }
+
+            // POST 요청의 경우, IOUtils를 사용해 바디 읽기
+            if (contentLength > 0) {
+                String body = IOUtils.readData(br, contentLength);  // IOUtils 활용
+                System.out.println("Body: " + body);
+                return body;
+            } else {
+                throw new NoSuchElementException("There is no Body");
+            }
+
+        } catch (IOException | NoSuchElementException e) {
+            log.log(Level.SEVERE, e.getMessage());
+        }
+
+        return "";
+    }
+
+    private boolean isLogin(String resource) {
+        return resource.equals("/user/login");
+    }
+
+    private void redirectToHome(DataOutputStream dos) {
         try {
             dos.writeBytes("HTTP/1.1 302 Found \r\n");
             dos.writeBytes("Location: http://localhost:80/\r\n");
