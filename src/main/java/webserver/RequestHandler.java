@@ -17,6 +17,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static http.util.HttpRequestUtils.parseQueryParameter;
+import static http.util.IOUtils.readData;
 
 public class RequestHandler implements Runnable{
     Socket connection;
@@ -38,7 +39,6 @@ public class RequestHandler implements Runnable{
             String[] startLines = startLine.split(" ");
             String method = startLines[0];
             String targetUrl = startLines[1];
-            System.out.println(targetUrl);
             byte[] body = new byte[0];
 
             Path targetPath = Paths.get("./webapp" + targetUrl);
@@ -54,13 +54,11 @@ public class RequestHandler implements Runnable{
             }
 
             if (method.equals("GET") && targetUrl.contains("/user/signup")) {
-                String queryString = IOUtils.readData(br, body.length);
+                String queryString = (targetUrl.split("\\?"))[1];
                 Map<String, String> queryParameter = parseQueryParameter(queryString);
-
                 User user = new User(queryParameter.get("userId"), queryParameter.get("password"), queryParameter.get("name"), queryParameter.get("email"));
                 repository.addUser(user);
                 response302Header(dos,"/index.html");
-
                 return;
             }
 
