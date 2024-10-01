@@ -1,8 +1,6 @@
 package webserver;
 
 import db.MemoryUserRepository;
-import http.util.HttpRequestUtils;
-import http.util.IOUtils;
 import model.User;
 
 import java.io.*;
@@ -15,11 +13,11 @@ import java.util.logging.Logger;
 
 import static http.util.HttpRequestUtils.*;
 import static http.util.IOUtils.*;
-import static webserver.HttpMethod.*;
-import static webserver.Path.*;
-import static webserver.HttpHeader.*;
-import static webserver.QueryKey.*;
-import static webserver.StatusCode.*;
+import static constant.HttpMethod.*;
+import static constant.URL.*;
+import static constant.HttpHeader.*;
+import static constant.QueryKey.*;
+import static constant.HttpStatus.*;
 
 public class RequestHandler implements Runnable{
     Socket connection;
@@ -40,7 +38,7 @@ public class RequestHandler implements Runnable{
             DataOutputStream dos = new DataOutputStream(out);
             byte[] body = "".getBytes();
 
-            //도메인 추출
+            //startLine 추출
             String startLine = br.readLine();
             String[] split = startLine.split(" ");
             String method = split[0];
@@ -49,7 +47,7 @@ public class RequestHandler implements Runnable{
             int requestContentLength = 0;
 
             //로그인 성공여부
-            Boolean isLogin = false;
+            boolean isLogin = false;
 
             //header 추출
             while (true) {
@@ -66,17 +64,18 @@ public class RequestHandler implements Runnable{
                     isLogin = true;
                 }
             }
+            /////body 추출
 
             //요구사항 1
             if(GET.isEqual(method) && url.equals("/")){
-                body = Files.readAllBytes(Paths.get(ROOT_PATH.getPath()+ HOME_PATH.getPath()));
+                body = Files.readAllBytes(Paths.get(ROOT.getUrl()+ INDEX.getUrl()));
             }
 
             if(GET.isEqual(method) && url.endsWith(".html")){
-                body = Files.readAllBytes(Paths.get(ROOT_PATH.getPath()+url));
+                body = Files.readAllBytes(Paths.get(ROOT.getUrl()+url));
             }
 
-            if(url.startsWith("/user/signup")){
+            if(url.startsWith(SIGNUP.getUrl())){
                 //요구사항 2
                 if (GET.isEqual(method)) {
                     //url에서 queryString 분리
@@ -89,30 +88,37 @@ public class RequestHandler implements Runnable{
                     String queryString = readData(br, requestContentLength);
                     register(queryString);
                 }
-                response302Header(dos, HOME_PATH.getPath(), isLogin);
+                response302Header(dos, INDEX.getUrl(), isLogin);
                 return;
             }
 
             //요구사항 5
-            if (url.equals("/user/login")) {
+            if (url.equals(LOGIN.getUrl())) {
                 Map<String, String> loginInfo = parseQueryParameter(readData(br, requestContentLength));
                 MemoryUserRepository memoryUserRepository = MemoryUserRepository.getInstance();
-                User findUser = memoryUserRepository.findUserById(loginInfo.get("userId"));
+                User findUser = memoryUserRepository.findUserById(loginInfo.get(USER_ID.getKey()));
                 login(findUser, loginInfo, dos);
                 return;
             }
 
             //요구사항 6
             //todo /user/list.html 로 들어오는 url은 처리하지 않아도 되나? (로그인화면 -> UserList 클릭)
-            if (url.equals("/user/userList")) {
+            if (url.equals(USER_LIST.getUrl())) {
                 if (isLogin) {
-                    response302Header(dos, LIST_PATH.getPath(), isLogin);
+                    response302Header(dos, LIST.getUrl(), isLogin);
                     return;
                 }
-                response302Header(dos, LOGIN_PATH.getPath(), isLogin);
+                response302Header(dos, LOGIN_HTML.getUrl(), isLogin);
                 return;
             }
 
+            //요구사항 7
+            if(GET.isEqual(method) && url.endsWith(".css")){
+                body = Files.readAllBytes(Paths.get(ROOT.getUrl() + url));
+                responseCssHeader(dos, body.length);
+                responseBody(dos, body);
+                return;
+            }
             response200Header(dos, body.length);
             responseBody(dos, body);
 
@@ -123,10 +129,10 @@ public class RequestHandler implements Runnable{
 
     private void login(User findUser, Map<String, String> loginInfo, DataOutputStream dos) {
         if (findUser != null && findUser.getPassword().equals(loginInfo.get(PASSWORD.getKey()))) {
-            response302Header(dos, HOME_PATH.getPath(), true);
+            response302Header(dos, INDEX.getUrl(), true);
             return;
         }
-        response302Header(dos, LOGIN_FAILED_PATH.getPath(), false);
+        response302Header(dos, LOGIN_FAILED.getUrl(), false);
     }
 
     //queryString을 통해 새로운 User 정보를 생성하는 메서드
@@ -144,13 +150,11 @@ public class RequestHandler implements Runnable{
 //        System.out.println("newUser_name = " + memoryUserRepository.findUserById(queryParameter.get("userId")).getName());
     }
 
-    //todo 요구사항 7? (안해도 이미 css 적용되어있음..)
-    private void responseCssHeader(DataOutputStream dos) {
+    private void responseCssHeader(DataOutputStream dos, int content_length) {
         try {
-            dos.writeBytes("GET ./css/style.css HTTP/1.1 \r\n");
-            dos.writeBytes("Content-Type: text/css;charset=utf-8\r\n");
-            dos.writeBytes("Host: ~ \r\n");
-            dos.writeBytes("Accept: text/css,*/*;q=0.1 \r\n");
+            dos.writeBytes(HTTP_VERSION.getHeader()+" "+ OK.getStatus()+" \r\n");
+            dos.writeBytes(CONTENT_TYPE.getHeader()+": text/css;charset=utf-8\r\n");
+            dos.writeBytes(CONTENT_LENGTH.getHeader()+": " + content_length + "\r\n");
             dos.writeBytes("\r\n");
         } catch (IOException e) {
             log.log(Level.SEVERE, e.getMessage());
@@ -163,7 +167,7 @@ public class RequestHandler implements Runnable{
             dos.writeBytes(HTTP_VERSION.getHeader()+" "+ REDIRECT.getStatus()+" \r\n");
             dos.writeBytes(LOCATION.getHeader()+": "+url+"\r\n");
             if(isLogin){
-                dos.writeBytes(SET_COOKIE.getHeader()+": logined=true \r\n");
+                dos.writeBytes(SET_COOKIE.getHeader()+": logined="+isLogin+" \r\n");
             }
             dos.writeBytes("\r\n");
         } catch (IOException e) {
