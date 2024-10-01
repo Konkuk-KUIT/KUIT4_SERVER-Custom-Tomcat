@@ -39,8 +39,8 @@ public class RequestHandler implements Runnable {
 
             byte[] body;
 
+            // /index.html 요청 처리
             if ("/".equals(url) || "/index.html".equals(url)) {
-                // /index.html 요청 처리
                 body = Files.readAllBytes(Paths.get("./webapp/index.html"));
                 response200Header(dos, body.length);
                 responseBody(dos, body);
@@ -57,7 +57,8 @@ public class RequestHandler implements Runnable {
 
             // /user/signup 요청 처리
             if (url.startsWith("/user/signup")) {
-                handleSignUp(url, dos);
+//                handleSignUp(url, dos);
+                handlePostSignUp(br, dos);
                 return;
             }
 
@@ -72,16 +73,46 @@ public class RequestHandler implements Runnable {
         }
     }
 
+    // POST 방식 회원가입 처리
+    private void handlePostSignUp(BufferedReader br, DataOutputStream dos) throws IOException {
+        int requestContentLength = 0;
+
+        while (true) {
+            final String line = br.readLine();
+            if (line.equals("")) {
+                break;
+            }
+            // header info
+            if (line.startsWith("Content-Length")) {
+                requestContentLength = Integer.parseInt(line.split(": ")[1]);
+            }
+        }
+
+        char[] bodyData = new char[requestContentLength];
+        br.read(bodyData, 0, requestContentLength);
+        String body = new String(bodyData);
+
+        Map<String, String> params = HttpRequestUtils.parseQueryParameter(body);
+
+        User user = new User(params.get("userId"), params.get("password"), params.get("name"), params.get("email"));
+
+        // 객체가 잘 생성되었는지 확인
+        log.log(Level.INFO, "User Created: " + user.getUserId());
+
+        memoryUserRepository.addUser(user);
+
+        // 302 리다이렉트 응답
+        response302RedirectHeader(dos, "/index.html");
+    }
+
     // 회원가입 처리
     private void handleSignUp(String url, DataOutputStream dos) throws IOException {
         // URL에서 쿼리스트링을 파싱하여 사용자 정보를 추출
         String queryString = url.split("\\?")[1];
         Map<String, String> params = HttpRequestUtils.parseQueryParameter(queryString);
 
-        // User 객체 생성
         User user = new User(params.get("userId"), params.get("password"), params.get("name"), params.get("email"));
 
-        // MemoryUserRepository에 사용자 정보 저장
         memoryUserRepository.addUser(user);
 
         // 302 리다이렉트 응답
