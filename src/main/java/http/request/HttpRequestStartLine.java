@@ -16,4 +16,12 @@ public class HttpRequestStartLine {
 
         return new HttpRequestStartLine(split[0], split[1]);
     }
+
+    public String getMethod() {
+        return method;
+    }
+
+    public String getUrl() {
+        return url;
+    }
 }
