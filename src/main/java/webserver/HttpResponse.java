@@ -42,7 +42,12 @@ public class HttpResponse {
         writeHeaders();
 
         // 응답 본문(HTML 파일의 내용)을 작성
-        byte[] body = Files.readAllBytes(Paths.get(WEBAPP_DIR + path));
+        byte[] body = null;
+        try {
+            body = Files.readAllBytes(Paths.get(WEBAPP_DIR + path));
+        } catch (IOException e) {
+            throw new RuntimeException("파일 못참음!!");
+        }
         dos.write(body);
         dos.flush();
     }

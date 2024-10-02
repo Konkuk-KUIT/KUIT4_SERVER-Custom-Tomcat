@@ -21,20 +21,24 @@ public class RequestHandler implements Runnable{
         this.connection = connection;
         this.userRepository = userRepository;
         this.controllers = new HashMap<>();
+        initializeControllers();
     }
 
     private void initializeControllers() {
-        Controller loginController = new LoginController();
-        Controller signUpController = new SignUpController();
-        // DI 완료!!!
-        ((LoginController) loginController).setUserRepository(userRepository);
-        ((SignUpController) signUpController).setUserRepository(userRepository);
+        LoginController loginController = new LoginController();
+        SignUpController signUpController = new SignUpController();
 
-        controllers.put("/user/signup", new SignUpController());
-        controllers.put("/user/login", new LoginController());
+        // DI 완료!!!
+        loginController.setUserRepository(userRepository);
+        signUpController.setUserRepository(userRepository);
+
+        // controllers 맵에 등록
+        controllers.put("/user/signup", signUpController);
+        controllers.put("/user/login", loginController);
         controllers.put("/user/userList", new ListController());
         controllers.put("/", new HomeController());
     }
+
 
     @Override
     public void run() {
@@ -42,7 +46,7 @@ public class RequestHandler implements Runnable{
         try (InputStream in = connection.getInputStream(); OutputStream out = connection.getOutputStream()){
             BufferedReader br = new BufferedReader(new InputStreamReader(in));
             DataOutputStream dos = new DataOutputStream(out);
-
+            Controller forwardController = new ForwardController();
             // HttpRequest 객체 생성
             HttpRequest httpRequest = HttpRequest.from(br);
             HttpResponse httpResponse = new HttpResponse(dos);
@@ -52,12 +56,14 @@ public class RequestHandler implements Runnable{
                 controller.execute(httpRequest, httpResponse);
             } else {
                 //todo 404 Not Found 처리
+
+                // GET 요청이고 루트패스가 아닌것으로 끝나는 경우 ForwardController 사용
+                if (httpRequest.getMethod().equals("GET")) {
+                forwardController.execute(httpRequest, httpResponse);
+                }
             }
 
-            // GET 요청이고 루트패스가 아닌것으로 끝나는 경우 ForwardController 사용
-            if (httpRequest.getMethod().equals("GET") && !(httpRequest.getPath().equals("/"))) {
-                new ForwardController().execute(httpRequest, httpResponse);
-            }
+
 
 
 
