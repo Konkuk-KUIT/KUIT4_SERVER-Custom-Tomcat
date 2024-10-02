@@ -2,6 +2,7 @@ package webserver;
 
 import db.MemoryUserRepository;
 import http.util.HttpRequestUtils;
+import http.util.IOUtils;
 import model.User;
 
 import java.io.*;
@@ -53,26 +54,68 @@ public class RequestHandler implements Runnable{
                // requestedFile = "/index.html";
             }
 
-            //요구사항 2 get 방식으로 회원가입
+            if(method.equals("GET")) {
 
-            //쿼리스트링 분리
-            String[] pathAndQuery = requestedFile.split("\\?");
-            String filePathQuery = pathAndQuery[0]; // 파일 경로 (예: /index.html)
-            String queryString = pathAndQuery.length > 1 ? pathAndQuery[1] : null; // 쿼리 스트링이 있으면 추출
+                //요구사항 2 get 방식으로 회원가입
 
-            // 쿼리 스트링을 파싱하여 Map으로 변환
-            if (queryString != null) {
-                Map<String, String> queryParams = HttpRequestUtils.parseQueryParameter(queryString);
+                //쿼리스트링 분리
+                String[] pathAndQuery = requestedFile.split("\\?");
+                String filePathQuery = pathAndQuery[0]; // 파일 경로 (예: /index.html)
+                String queryString = pathAndQuery.length > 1 ? pathAndQuery[1] : null; // 쿼리 스트링이 있으면 추출
 
-                MemoryUserRepository memoryUserRepository = MemoryUserRepository.getInstance();
+                // 쿼리 스트링을 파싱하여 Map으로 변환
+                if (queryString != null) {
+                    Map<String, String> queryParams = HttpRequestUtils.parseQueryParameter(queryString);
+                    MemoryUserRepository memoryUserRepository = MemoryUserRepository.getInstance();
 
-                if(filePathQuery.equals("/user/signup")){
-                    User user = new User(queryParams.get("userId"),queryParams.get("password"),queryParams.get("name"),queryParams.get("email"));
-                    memoryUserRepository.addUser(user);
-                    responseRedirect(dos, "/index.html");
+                    if(filePathQuery.equals("/user/signup")){
+                        User user = new User(queryParams.get("userId"),queryParams.get("password"),queryParams.get("name"),queryParams.get("email"));
+                        memoryUserRepository.addUser(user);
+                        responseRedirect(dos, "/index.html");
+                    }
+                }
+
+            }
+
+            //헤더읽기
+//            String headerLine;
+//            while ((headerLine = br.readLine()) != null && !headerLine.isEmpty()) {
+//                log.log(Level.INFO, "Header Line: " + headerLine);
+//            }
+
+            int requestContentLength = 0;
+            while (true) {
+                final String line = br.readLine();
+                if (line.equals("")) {
+                    break;
+                }
+                // 헤더 정보
+                if (line.startsWith("Content-Length")) {
+                    requestContentLength = Integer.parseInt(line.split(": ")[1]);
+                    log.log(Level.INFO, "Content-Length " +  requestContentLength);
                 }
             }
 
+            if(method.equals("POST")) {
+
+                //요구사항 3 POST 방식으로 회원가입
+
+                String requestBody = IOUtils.readData(br,requestContentLength);
+
+                // 쿼리 스트링을 파싱하여 Map으로 변환
+                if (requestBody != null) {
+                    Map<String, String> queryParams = HttpRequestUtils.parseQueryParameter(requestBody);
+
+                    MemoryUserRepository memoryUserRepository = MemoryUserRepository.getInstance();
+
+                    if(requestedFile.equals("/user/signup")){
+                        User user = new User(queryParams.get("userId"),queryParams.get("password"),queryParams.get("name"),queryParams.get("email"));
+                        memoryUserRepository.addUser(user);
+                        responseRedirect(dos, "/index.html");
+                    }
+                }
+
+            }
 
 
             // 요청된 파일 경로 처리
