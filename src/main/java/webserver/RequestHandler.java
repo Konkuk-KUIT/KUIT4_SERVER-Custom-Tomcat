@@ -2,12 +2,19 @@ package webserver;
 
 import java.io.*;
 import java.net.Socket;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class RequestHandler implements Runnable{
     Socket connection;
     private static final Logger log = Logger.getLogger(RequestHandler.class.getName());
+    private static final String ROOT_URL = "./webapp";
+    private static final String HOME_URL = "/index.html";
+
+    private final Path homePath = Paths.get(ROOT_URL + HOME_URL);
 
     public RequestHandler(Socket connection) {
         this.connection = connection;
@@ -20,7 +27,23 @@ public class RequestHandler implements Runnable{
             BufferedReader br = new BufferedReader(new InputStreamReader(in));
             DataOutputStream dos = new DataOutputStream(out);
 
-            byte[] body = "Hello World".getBytes();
+            byte[] body = new byte[0];
+
+            // start-line 분석
+            String startLine = br.readLine();
+            String[] startLines = startLine.split(" ");
+            String method = startLines[0];
+            String url = startLines[1];
+
+            // 요구 사항 1번
+            if (method.equals("GET") && url.endsWith(".html")) {
+                body = Files.readAllBytes(Paths.get(ROOT_URL + url));
+            }
+
+            if (url.equals("/")) {
+                body = Files.readAllBytes(homePath);
+            }
+
             response200Header(dos, body.length);
             responseBody(dos, body);
 
