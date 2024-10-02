@@ -13,26 +13,33 @@ import static enums.http.header.EntityHeader.*;
 
 public class HttpRequest {
     private String startLine;
-    private Map<String, String> header;
-    private Map<String, String> body;
+    private Map<String, String> headerMap;
+    private Map<String, String> bodyMap;
 
     public HttpRequest(String startLine,
-                       Map<String, String> header,
-                       Map<String, String> body)
-    {
+                       Map<String, String> headerMap,
+                       Map<String, String> bodyMap) {
         this.startLine = startLine;
-        this.header = header;
-        this.body = body;
+        this.headerMap = headerMap;
+        this.bodyMap = bodyMap;
     }
 
     public static HttpRequest from(BufferedReader br) throws IOException {
-        // startLine
+        String startLine = extractStartLine(br);
+        Map<String, String> headerMap = extractHeaderMap(br);
+        Map<String, String> bodyMap = extractBodyMap(br, headerMap);
+        return new HttpRequest(startLine, headerMap, bodyMap);
+    }
+
+    private static String extractStartLine(BufferedReader br) throws IOException {
         String startLine = br.readLine();
         if (startLine == null || startLine.isEmpty()) {
             throw new IOException(ExceptionMessage.INVALID_START_LINE.getMessage());
         }
+        return startLine;
+    }
 
-        // header
+    private static Map<String, String> extractHeaderMap(BufferedReader br) throws IOException {
         Map<String, String> headerMap = new HashMap<>();
         String line;
         while ((line = br.readLine()) != null) {
@@ -42,22 +49,22 @@ public class HttpRequest {
                 headerMap.put(headerParts[0], headerParts[1]);
             }
         }
+        return headerMap;
+    }
 
+    private static Map<String, String> extractBodyMap(BufferedReader br, Map<String, String> headerMap) throws IOException {
         int contentLength = 0;
         String rawContentLength = headerMap.get(CONTENTLENGTH.getValue());
-        if(rawContentLength != null) contentLength= Integer.parseInt(rawContentLength);
+        if (rawContentLength != null) contentLength = Integer.parseInt(rawContentLength);
 
-        // message body 추출, 나중에 POST 할 때 Map 형식으로 변환
         String rawMessageBody = "";
         if (contentLength > 0) {
             rawMessageBody = IOUtils.readData(br, contentLength);
         }
-        Map<String, String> bodyMap = extractBodyParameters(rawMessageBody);
-
-        return new HttpRequest(startLine, headerMap, bodyMap);
+        return buildBodyMapFromMessageBody(rawMessageBody);
     }
 
-    private static Map<String, String> extractBodyParameters(String rawMessageBody) {
+    private static Map<String, String> buildBodyMapFromMessageBody(String rawMessageBody) {
         if (rawMessageBody.isEmpty()) return new HashMap<>();
         return HttpRequestUtils.parseQueryParameter(rawMessageBody);
     }
@@ -95,11 +102,11 @@ public class HttpRequest {
         return HttpRequestUtils.parseQueryParameter(queryString);
     }
 
-    public Map<String, String> getHeader() {
-        return header;
+    public Map<String, String> getHeaderMap() {
+        return headerMap;
     }
 
-    public Map<String, String> getBody() {
-        return body;
+    public Map<String, String> getBodyMap() {
+        return bodyMap;
     }
 }

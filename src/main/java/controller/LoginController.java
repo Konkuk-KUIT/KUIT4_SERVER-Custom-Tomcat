@@ -16,20 +16,14 @@ public class LoginController implements Controller{
 
     @Override
     public void execute(HttpRequest httpRequest, HttpResponse httpResponse) {
+
         boolean isLoginSuccessed = false;
-
         // if (httpRequest.getHttpMethod().equals("GET")){ } // 일단 POST 방식으로 전송되니까 보류
-
         if (httpRequest.getHttpMethod().equals(POST.getValue())) {
-            String userId = httpRequest.getBody().get(USERID.getValue());
-            String password = httpRequest.getBody().get(PASSWORD.getValue());
+            String userId = httpRequest.getBodyMap().get(USERID.getValue());
+            String password = httpRequest.getBodyMap().get(PASSWORD.getValue());
 
-            User user = repository.findUserById(userId);
-            if(user != null){
-                if(user.getPassword().equals(password)){
-                    isLoginSuccessed = true;
-                }
-            }
+            isLoginSuccessed = checkIdPwValid(userId, password);
         }
 
         if(isLoginSuccessed){
@@ -40,5 +34,10 @@ public class LoginController implements Controller{
             String location = LOGIN_FAILED_HTML.getRoute();
             httpResponse.redirect(location);
         }
+    }
+
+    private boolean checkIdPwValid(String userId, String password){User user = repository.findUserById(userId);
+        if(user != null && user.getPassword().equals(password)) return true;
+        return false;
     }
 }

@@ -63,7 +63,7 @@ class HttpRequestTest {
     @Test
     void getHeader() {
         //when
-        Map<String, String> actualHeaderMap = httpRequest.getHeader();
+        Map<String, String> actualHeaderMap = httpRequest.getHeaderMap();
 
         //given
         Map<String, String> expectedHeaderMap = Map.of(
@@ -80,7 +80,7 @@ class HttpRequestTest {
     @Test
     void getBody() {
         //when
-        Map<String, String> actualBodyMap = httpRequest.getBody();
+        Map<String, String> actualBodyMap = httpRequest.getBodyMap();
 
         //given
         Map<String, String> expectedBodyMap = Map.of(
