@@ -140,11 +140,12 @@ public class RequestHandler implements Runnable{
 
     private void viewStaticFile(String path, DataOutputStream dos) throws IOException {
         byte[] body;
+        String contentType = getContentType(path);
         String filePath = WEBAPP_DIR + path;
         File file = new File(filePath);
         if (file.exists()) {
             body = Files.readAllBytes(Paths.get(filePath));
-            response200Header(dos, body.length);
+            response200Header(dos, body.length, contentType);
             responseBody(dos, body);
         }
         else {
@@ -152,10 +153,10 @@ public class RequestHandler implements Runnable{
         }
     }
 
-    private void response200Header(DataOutputStream dos, int lengthOfBodyContent) {
+    private void response200Header(DataOutputStream dos, int lengthOfBodyContent, String contentType) {
         try {
             dos.writeBytes("HTTP/1.1 200 OK \r\n");
-            dos.writeBytes("Content-Type: text/html;charset=utf-8\r\n");
+            dos.writeBytes("Content-Type: " + contentType + "\r\n");
             dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
             dos.writeBytes("\r\n");
         } catch (IOException e) {
@@ -190,6 +191,19 @@ public class RequestHandler implements Runnable{
             dos.writeBytes("\r\n");
         } catch (IOException e) {
             log.log(Level.SEVERE, e.getMessage());
+        }
+    }
+
+    private String getContentType(String filePath) {
+        String lowerCasePath = filePath.toLowerCase();
+        if (lowerCasePath.endsWith(".html")) {
+            return "text/html;charset=utf-8";
+        } else if (lowerCasePath.endsWith(".css")) {
+            return "text/css;charset=utf-8";
+        } else if (lowerCasePath.endsWith(".js")) {
+            return "application/javascript;charset=utf-8";
+        } else {
+            return "text/plain;charset=utf-8";
         }
     }
 
