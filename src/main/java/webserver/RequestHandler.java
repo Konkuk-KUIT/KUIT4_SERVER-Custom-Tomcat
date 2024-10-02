@@ -18,6 +18,7 @@ public class RequestHandler implements Runnable{
     private static final Logger log = Logger.getLogger(RequestHandler.class.getName());
     private static final String WEBAPP_DIR = "webapp";
     private MemoryUserRepository userRepository;
+    // 여기서 repository DI 받음
     public RequestHandler(Socket connection , MemoryUserRepository userRepository) {
         this.connection = connection;
         this.userRepository = userRepository;
@@ -41,6 +42,7 @@ public class RequestHandler implements Runnable{
             // 여기서부터 헤더를 읽고 Content-Length를 파악
             // br의 offset을 body쪽으로 이동
             int requestContentLength = 0; // Content-Length 초기화
+            String cookieHeader = null;
             while (true) {
                 final String line = br.readLine();
                 if (line.equals("")) {
@@ -49,6 +51,10 @@ public class RequestHandler implements Runnable{
                 // 헤더 정보 처리
                 if (line.startsWith("Content-Length")) {
                     requestContentLength = Integer.parseInt(line.split(": ")[1]);
+                }
+                // 쿠키 헤더들
+                if (line.startsWith("Cookie")) {
+                    cookieHeader = line;
                 }
             }
 
@@ -77,8 +83,8 @@ public class RequestHandler implements Runnable{
             }
 
 
-            // 요구사항2 : get 요청으로 회원가입할때
             if (method.equals("GET") && path.equals("/user/signup")) {
+                // 요구사항2 : get 요청으로 회원가입할때
                 String userId = queryParams.get("userId");
                 String password = queryParams.get("password");
                 String name = queryParams.get("name");
@@ -88,8 +94,8 @@ public class RequestHandler implements Runnable{
                     userRepository.addUser(user);
                 }
                 response302Redirect(dos, "/index.html");
-            // 요구사항3 : POST 요청으로 회원가입할때
             } else if (method.equals("POST") && path.equals("/user/signup")) {
+                // 요구사항3 : POST 요청으로 회원가입할때
                 String userId = bodyParams.get("userId");
                 String password = bodyParams.get("password");
                 String name = bodyParams.get("name");
@@ -99,38 +105,50 @@ public class RequestHandler implements Runnable{
                     userRepository.addUser(user);
                 }
                 response302Redirect(dos, "/index.html");
-            // 요구사항1 : / 요청으로 index.html 이동
+            } else if (method.equals("POST") && path.equals("/user/login")) {
+                // 요구사항5 : 로그인 요청
+                String userId = bodyParams.get("userId");
+                String password = bodyParams.get("password");
+                User user = userRepository.findUserById(userId);
+                if (user != null){
+                    if (password.equals(user.getPassword())){
+                        response302RedirectWithCookie(dos, "/index.html","logined=true");
+                    }
+                }
+                response302Redirect(dos, "/user/login_failed.html");
+            } else if (path.equals("/user/userList")) {
+                // 요구사항 6 :
+                if (cookieHeader == null || !(cookieHeader.contains("logined=true"))) {
+                    response302Redirect(dos, "/index.html");
+                }
+                viewStaticFile("/user/list.html", dos);
             } else if (path.equals("/")){
+                // 요구사항1 : / 요청으로 index.html 이동
                 path = "/index.html";
-                // 요청된 경로에 따라 파일 경로 설정
-                String filePath = WEBAPP_DIR + path;
-                File file = new File(filePath);
-                if (file.exists()) {
-                    body = Files.readAllBytes(Paths.get(filePath));
-                    response200Header(dos, body.length);
-                    responseBody(dos, body);
-                }
-                else {
-                    log.log(Level.INFO,"파일 없음!!!!!!");
-                }
+                viewStaticFile(path, dos);
             // 지정된 패쓰가 없으면 그래도 정적 파일
-            } else {
-                String filePath = WEBAPP_DIR + path;
-                File file = new File(filePath);
-                if (file.exists()) {
-                    body = Files.readAllBytes(Paths.get(filePath));
-                    response200Header(dos, body.length);
-                    responseBody(dos, body);
-                }
-                else {
-                    log.log(Level.INFO,"파일 없음!!!!!!");
-                }
+            }  else {
+                viewStaticFile(path, dos);
             }
 
 
 
         } catch (IOException e) {
             log.log(Level.SEVERE,e.getMessage());
+        }
+    }
+
+    private void viewStaticFile(String path, DataOutputStream dos) throws IOException {
+        byte[] body;
+        String filePath = WEBAPP_DIR + path;
+        File file = new File(filePath);
+        if (file.exists()) {
+            body = Files.readAllBytes(Paths.get(filePath));
+            response200Header(dos, body.length);
+            responseBody(dos, body);
+        }
+        else {
+            log.log(Level.INFO,"파일 없음!!!!!!");
         }
     }
 
@@ -157,6 +175,17 @@ public class RequestHandler implements Runnable{
     private void response302Redirect(DataOutputStream dos, String url) {
         try {
             dos.writeBytes("HTTP/1.1 302 Found\r\n");
+            dos.writeBytes("Location: " + url + "\r\n");
+            dos.writeBytes("\r\n");
+        } catch (IOException e) {
+            log.log(Level.SEVERE, e.getMessage());
+        }
+    }
+
+    private void response302RedirectWithCookie(DataOutputStream dos, String url, String cookie) {
+        try {
+            dos.writeBytes("HTTP/1.1 302 Found\r\n");
+            dos.writeBytes("Set-Cookie: " + cookie + "\r\n");
             dos.writeBytes("Location: " + url + "\r\n");
             dos.writeBytes("\r\n");
         } catch (IOException e) {
