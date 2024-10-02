@@ -29,7 +29,7 @@ public class HttpRequest {
         // startLine
         String startLine = br.readLine();
         if (startLine == null || startLine.isEmpty()) {
-            throw new IOException(ExceptionMessage.INVALID_STARTLINE.getMessage());
+            throw new IOException(ExceptionMessage.INVALID_START_LINE.getMessage());
         }
 
         // header

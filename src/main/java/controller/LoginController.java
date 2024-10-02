@@ -1,5 +1,6 @@
 package controller;
 
+import db.MemoryUserRepository;
 import db.Repository;
 import http.HttpRequest;
 import http.HttpResponse;
@@ -11,11 +12,7 @@ import static enums.key.UserQueryKey.USERID;
 import static enums.route.StaticRoute.*;
 
 public class LoginController implements Controller{
-    Repository repository;
-
-    public LoginController(Repository repository) {
-        this.repository = repository;
-    }
+    Repository repository = MemoryUserRepository.getInstance();
 
     @Override
     public void execute(HttpRequest httpRequest, HttpResponse httpResponse) {

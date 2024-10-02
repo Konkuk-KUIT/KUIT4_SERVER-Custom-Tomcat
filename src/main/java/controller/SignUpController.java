@@ -1,5 +1,6 @@
 package controller;
 
+import db.MemoryUserRepository;
 import db.Repository;
 import http.HttpRequest;
 import http.HttpResponse;
@@ -13,11 +14,7 @@ import static enums.key.UserQueryKey.*;
 import static enums.route.StaticRoute.*;
 
 public class SignUpController implements Controller{
-    Repository repository;
-
-    public SignUpController(Repository repository) {
-        this.repository = repository;
-    }
+    Repository repository = MemoryUserRepository.getInstance();
 
     @Override
     public void execute(HttpRequest httpRequest, HttpResponse httpResponse) {
