@@ -1,12 +1,19 @@
 package webserver;
 
+import db.Repository;
+import http.util.IOUtils;
+import model.User;
+
 import java.io.*;
 import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import static http.util.HttpRequestUtils.parseQueryParameter;
 
 public class RequestHandler implements Runnable{
     Socket connection;
@@ -14,10 +21,12 @@ public class RequestHandler implements Runnable{
     private static final String ROOT_URL = "./webapp";
     private static final String HOME_URL = "/index.html";
 
+    private final Repository repository;
     private final Path homePath = Paths.get(ROOT_URL + HOME_URL);
 
-    public RequestHandler(Socket connection) {
+    public RequestHandler(Socket connection, Repository repository) {
         this.connection = connection;
+        this.repository = repository;
     }
 
     @Override
@@ -44,6 +53,16 @@ public class RequestHandler implements Runnable{
                 body = Files.readAllBytes(homePath);
             }
 
+            // 요구 사항 2번
+            if (url.startsWith("/user/signup") && method.equals("GET")) {
+                String queryString = url.split("\\?")[1];
+                Map<String, String> queryParameter = parseQueryParameter(queryString);
+                User user = new User(queryParameter.get("userId"), queryParameter.get("password"), queryParameter.get("name"), queryParameter.get("email"));
+                repository.addUser(user);
+                response302Header(dos,HOME_URL);
+                return;
+            }
+
             response200Header(dos, body.length);
             responseBody(dos, body);
 
@@ -67,6 +86,16 @@ public class RequestHandler implements Runnable{
         try {
             dos.write(body, 0, body.length);
             dos.flush();
+        } catch (IOException e) {
+            log.log(Level.SEVERE, e.getMessage());
+        }
+    }
+
+    private void response302Header(DataOutputStream dos, String path) {
+        try {
+            dos.writeBytes("HTTP/1.1 302 Redirect \r\n");
+            dos.writeBytes("Location: " + path + "\r\n");
+            dos.writeBytes("\r\n");
         } catch (IOException e) {
             log.log(Level.SEVERE, e.getMessage());
         }
