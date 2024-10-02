@@ -101,36 +101,50 @@ public class RequestHandler implements Runnable{
             if(requestLine != null && requestLine.startsWith("GET")) {
                 String[] tokens = requestLine.split(" ");
                 String filePath = tokens[1];
+                // 유저 리스트 요청 처리
+                if (filePath.startsWith("/user/userList")) {
+                    // Cookie 확인
+                    String cookieHeader = null;
+                    String line;
+                    while (!(line = br.readLine()).isEmpty()) {
+                        if (line.startsWith("Cookie:")) {
+                            cookieHeader = line.split(": ")[1];
+                        }
+                    }
 
-                if(filePath.startsWith("/user/signup")){
-                    /*String queryString = filePath.substring(filePath.indexOf("?")+1);
-                    Map<String, String> queryParms = HttpRequestUtils.parseQueryParameter(queryString);
+                    // Cookie가 존재하고 logined=true인지 확인
+                    if (cookieHeader != null && cookieHeader.contains("logined=true")) {
+                        // 로그인된 경우 유저 리스트 화면 띄움
+                        String userListPage = "webapp/user/list.html";
+                        File file = new File(userListPage);
+                        if (file.exists() && !file.isDirectory()) {
+                            byte[] body = Files.readAllBytes(Paths.get(userListPage));
+                            response200Header(dos, body.length, "text/html;charset=utf-8");
+                            responseBody(dos, body);
+                        } else {
+                            response404Header(dos); // 파일이 존재하지 않을 경우 404 에러 처리
+                        }
+                    } else {
+                        // 로그인되지 않은 경우 로그인 페이지로 리다이렉트
+                        responseRedirect(dos, "/user/login.html");
+                    }
+                    return; // 유저 리스트 요청 처리 후 종료
+                }
 
-                    //유저 인스턴스 생성
-                    String userId = queryParms.get("userId");
-                    String password = queryParms.get("password");
-                    String name = queryParms.get("name");
-                    String email = queryParms.get("email");
-
-                    User newUser = new User(userId, password, name, email);
-
-                    //유저 저장
-                    MemoryUserRepository.getInstance().addUser(newUser);
-
-                    //302 리다이렉트
-                    responseRedirect(dos, "/");*/
-                    String fullPath = "webapp/user/signup.html"; // 회원가입 폼을 반환
+                // CSS 파일 요청 처리
+                if (filePath.endsWith(".css")) {
+                    String fullPath = "webapp" + filePath; // 요청된 CSS 파일 경로
                     File file = new File(fullPath);
                     if (file.exists() && !file.isDirectory()) {
                         // 파일이 존재할 경우
                         byte[] body = Files.readAllBytes(Paths.get(fullPath));
-                        response200Header(dos, body.length, getContentType(filePath));
+                        response200Header(dos, body.length, "text/css"); // Content-Type을 text/css로 설정
                         responseBody(dos, body);
                     } else {
+                        // 파일이 존재하지 않을 경우 404 에러 처리
                         response404Header(dos);
                     }
                     return;
-
                 }
 
                 if("/".equals(filePath)){
