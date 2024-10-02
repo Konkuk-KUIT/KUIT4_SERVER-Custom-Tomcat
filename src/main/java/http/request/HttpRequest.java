@@ -1,5 +1,6 @@
 package http.request;
 
+import constant.URL;
 import http.util.HttpRequestUtils;
 import http.util.IOUtils;
 
@@ -49,6 +50,9 @@ public class HttpRequest {
     }
 
     public String getUrl() {
+        if(httpRequestStartLine.getUrl().equals("/")) {
+            return URL.INDEX.getUrl();
+        }
         return httpRequestStartLine.getUrl();
     }
 
