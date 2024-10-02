@@ -26,6 +26,5 @@ class HttpRequestUtilsTest {
         Map<String, String> queryParameter = HttpRequestUtils.parseQueryParameter("");
     }
 
-    //@Test
 
 }
