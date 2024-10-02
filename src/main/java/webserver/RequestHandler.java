@@ -43,6 +43,30 @@ public class RequestHandler implements Runnable{
             }
             log.log(Level.INFO, "Request Line: " + requestLine);
 
+            //헤더읽기
+//            String headerLine;
+//            while ((headerLine = br.readLine()) != null && !headerLine.isEmpty()) {
+//                log.log(Level.INFO, "Header Line: " + headerLine);
+//            }
+            int requestContentLength = 0;
+            String cookie = "";
+            while (true) {
+                final String line = br.readLine();
+                if (line.equals("")) {
+                    break;
+                }
+                // 헤더 정보
+                if (line.startsWith("Content-Length")) {
+                    requestContentLength = Integer.parseInt(line.split(": ")[1]);
+                    log.log(Level.INFO, "Content-Length " +  requestContentLength);
+                }
+                if (line.startsWith("Cookie")) {
+                    cookie = line.split(": ")[1].trim(); // 쿠키 값을 읽고 공백 제거
+                    log.log(Level.INFO, "Cookie " + cookie);
+                }
+
+            }
+
             // 요청된 파일 경로 추출 (예: /index.html)
             String[] requestLines = requestLine.split(" ");
             String method = requestLines[0]; // 요청 방식
@@ -75,67 +99,123 @@ public class RequestHandler implements Runnable{
                     }
                 }
 
+                log.log(Level.INFO,"filePathQuery"+filePathQuery);
+                log.log(Level.INFO,"cokkkkkkkkkkir"+cookie);
+                if(requestedFile.equals("/user/userList")){
+                    if(cookie.contains("logined=true")){
+                        responseRedirect(dos, "/user/list.html");
+                        log.log(Level.INFO,"어걸리면안되는데");
+                    }
+                    else{
+                        responseRedirect(dos, "/user/login.html");
+                    }
+
+                }
+
+
+
             }
 
-            //헤더읽기
-//            String headerLine;
-//            while ((headerLine = br.readLine()) != null && !headerLine.isEmpty()) {
-//                log.log(Level.INFO, "Header Line: " + headerLine);
-//            }
-
-            int requestContentLength = 0;
-            while (true) {
-                final String line = br.readLine();
-                if (line.equals("")) {
-                    break;
-                }
-                // 헤더 정보
-                if (line.startsWith("Content-Length")) {
-                    requestContentLength = Integer.parseInt(line.split(": ")[1]);
-                    log.log(Level.INFO, "Content-Length " +  requestContentLength);
-                }
-            }
 
             if(method.equals("POST")) {
 
-                //요구사항 3 POST 방식으로 회원가입
 
                 String requestBody = IOUtils.readData(br,requestContentLength);
 
-                // 쿼리 스트링을 파싱하여 Map으로 변환
+                // requestBody 파싱하여 Map으로 변환
                 if (requestBody != null) {
                     Map<String, String> queryParams = HttpRequestUtils.parseQueryParameter(requestBody);
 
                     MemoryUserRepository memoryUserRepository = MemoryUserRepository.getInstance();
 
+                    //요구사항 3 POST 방식으로 회원가입
                     if(requestedFile.equals("/user/signup")){
                         User user = new User(queryParams.get("userId"),queryParams.get("password"),queryParams.get("name"),queryParams.get("email"));
                         memoryUserRepository.addUser(user);
-                        responseRedirect(dos, "/index.html");
+                        log.log(Level.INFO, "user " +  user.getUserId());
+                        log.log(Level.INFO, "잘들어갔나 " +  memoryUserRepository.findUserById(user.getUserId()).getUserId());
+                        responseRedirect(dos, "/index.html"); //요구사항 4 리다이렉트 적용
                     }
+
+                    //요구사항 5 로그인하기
+                    if (requestedFile.equals("/user/login")) {
+
+                            //회원가입한 유저인지 찾기
+                            User findUser = memoryUserRepository.findUserById(queryParams.get("userId"));
+                            log.log(Level.INFO, "user " +  queryParams.get("userId"));
+                            if(findUser == null){
+                                //회원가입안함
+                                responseRedirect(dos, "/user/login_failed.html");
+                                return;
+                            }
+                            //로그인 성공
+                            if(findUser.getPassword().equals(queryParams.get("password")))
+                            {
+                                //쿠키생성
+                                responseRedirectWithCookie(dos, "/index.html","logined", "true"); // logined=true 쿠키를 설정
+                                //log.log(Level.INFO, "dosss " +  dos.toString());
+                                //responseRedirect(dos, "/index.html");
+                                log.log(Level.INFO, "로그인성공");
+                                log.log(Level.INFO, "z쿠키"+cookie);
+                                //responseRedirect(dos, "/index.html");
+                                return;
+
+                            }else {
+                                // 비밀번호가 틀린 경우
+                                responseRedirect(dos, "/user/login_failed.html");
+                                return;
+                            }
+
+                    }
+
+
                 }
 
-            }
 
+            }
+//
+//            byte[] body = Files.readAllBytes(Paths.get(requestedFile));
+//            response200Header(dos, body.length,"text/html");
+//            responseBody(dos, body);
 
             // 요청된 파일 경로 처리
             String filePath = WEBAPP_PATH + requestedFile;
             File file = new File(filePath);
 
-            // 요청된 파일이 존재하면 파일 읽기 및 응답
+//             요청된 파일이 존재하면 파일 읽기 및 응답
             if (file.exists()) {
                 byte[] body = Files.readAllBytes(Paths.get(filePath));
                 String contentType = Files.probeContentType(Paths.get(filePath)); // MIME 타입 추출
+                log.log(Level.INFO, "contentType " +  contentType);
 
                 response200Header(dos, body.length,contentType);
                 responseBody(dos, body);
             } else {
                 // 파일이 존재하지 않을 경우 404 Not Found 응답
                 byte[] body = "404 Not Found".getBytes();
-                //String contentType = Files.probeContentType(Paths.get(filePath)); // MIME 타입 추출
-                response404Header(dos, body.length,"text/html");
+                String contentType = Files.probeContentType(Paths.get(filePath)); // MIME 타입 추출
+                response404Header(dos, body.length,contentType);
                 responseBody(dos, body);
             }
+//            if (file.exists()) {
+//                byte[] body = Files.readAllBytes(Paths.get(filePath));
+//                String contentType;
+//
+//                // 요청된 파일의 확장자에 따라 MIME 타입 설정
+//                if (requestedFile.endsWith(".css")) {
+//                    contentType = "text/css";
+//                } else {
+//                    contentType = Files.probeContentType(Paths.get(filePath)); // MIME 타입 추출
+//                }
+//
+//                response200Header(dos, body.length, contentType);
+//                responseBody(dos, body);
+//            } else {
+//                // 파일이 존재하지 않을 경우 404 Not Found 응답
+//                byte[] body = "404 Not Found".getBytes();
+//                response404Header(dos, body.length, "text/html");
+//                responseBody(dos, body);
+//            }
         } catch (IOException e) {
             log.log(Level.SEVERE,e.getMessage());
         }
@@ -191,6 +271,29 @@ private void response200Header(DataOutputStream dos, int lengthOfBodyContent, St
             dos.writeBytes("HTTP/1.1 302 Found \r\n");
             dos.writeBytes("Location: " + redirectLocation + "\r\n");
             dos.writeBytes("\r\n");
+            dos.flush();
+        } catch (IOException e) {
+            log.log(Level.SEVERE, e.getMessage());
+        }
+    }
+
+//    private void responseSetCookie(DataOutputStream dos, String name, String value) {
+//        try {
+//            dos.writeBytes("Set-Cookie: " + name + "=" + value + "; HttpOnly; Secure; Path=/\r\n");
+//        } catch (IOException e) {
+//            log.log(Level.SEVERE, e.getMessage());
+//        }
+//    }
+
+    private void responseRedirectWithCookie(DataOutputStream dos, String redirectLocation, String cookieName, String cookieValue) {
+        try {
+            // 302 Found 상태 코드와 리다이렉션 경로 설정
+            dos.writeBytes("HTTP/1.1 302 Found\r\n");
+            dos.writeBytes("Location: " + redirectLocation + "\r\n");
+            // 쿠키 설정
+            dos.writeBytes("Set-Cookie: " + cookieName + "=" + cookieValue + "; HttpOnly; Secure; path=/\r\n");
+            dos.writeBytes("\r\n");
+            dos.flush();
         } catch (IOException e) {
             log.log(Level.SEVERE, e.getMessage());
         }
