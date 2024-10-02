@@ -1,9 +1,14 @@
 package webserver;
 
+import db.MemoryUserRepository;
+import http.util.HttpRequestUtils;
+import model.User;
+
 import java.io.*;
 import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -47,6 +52,28 @@ public class RequestHandler implements Runnable{
                 responseRedirect(dos, "/index.html");
                // requestedFile = "/index.html";
             }
+
+            //요구사항 2 get 방식으로 회원가입
+
+            //쿼리스트링 분리
+            String[] pathAndQuery = requestedFile.split("\\?");
+            String filePathQuery = pathAndQuery[0]; // 파일 경로 (예: /index.html)
+            String queryString = pathAndQuery.length > 1 ? pathAndQuery[1] : null; // 쿼리 스트링이 있으면 추출
+
+            // 쿼리 스트링을 파싱하여 Map으로 변환
+            if (queryString != null) {
+                Map<String, String> queryParams = HttpRequestUtils.parseQueryParameter(queryString);
+
+                MemoryUserRepository memoryUserRepository = MemoryUserRepository.getInstance();
+
+                if(filePathQuery.equals("/user/signup")){
+                    User user = new User(queryParams.get("userId"),queryParams.get("password"),queryParams.get("name"),queryParams.get("email"));
+                    memoryUserRepository.addUser(user);
+                    responseRedirect(dos, "/index.html");
+                }
+            }
+
+
 
             // 요청된 파일 경로 처리
             String filePath = WEBAPP_PATH + requestedFile;
