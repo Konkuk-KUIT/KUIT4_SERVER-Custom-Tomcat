@@ -1,5 +1,7 @@
 package webserver;
 
+import db.MemoryUserRepository;
+
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -11,9 +13,11 @@ public class WebServer {
     private static final int DEFAULT_PORT = 80;
     private static final int DEFAULT_THREAD_NUM = 50;
     private static final Logger log = Logger.getLogger(WebServer.class.getName());
+    private static MemoryUserRepository userRepository = MemoryUserRepository.getInstance();
 
     public static void main(String[] args) throws IOException {
         int port = DEFAULT_PORT;
+
         ExecutorService service = Executors.newFixedThreadPool(DEFAULT_THREAD_NUM);
 
         if (args.length != 0) {
@@ -27,7 +31,7 @@ public class WebServer {
             Socket connection;
             while ((connection = welcomeSocket.accept()) != null) {
                 // 스레드에 작업 전달
-                service.submit(new RequestHandler(connection));
+                service.submit(new RequestHandler(connection, userRepository));
             }
         }
 
