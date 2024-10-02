@@ -5,7 +5,6 @@ import http.util.HttpRequestUtils;
 import http.util.IOUtils;
 import model.User;
 
-import javax.xml.stream.Location;
 import java.io.*;
 import java.net.Socket;
 import java.nio.file.Files;
@@ -33,146 +32,142 @@ public class RequestHandler implements Runnable{
             String requestLine = br.readLine();
             log.log(Level.INFO, "Request Line: "+requestLine);
 
-            //POST로 로그인 처리
-            if(requestLine != null && requestLine.startsWith("POST")) {
+            //HTTP 메서드 확인하기
+            if(requestLine != null){
                 String[] tokens = requestLine.split(" ");
+                HttpMethod method = HttpMethod.valueOf(tokens[0].toUpperCase());
                 String filePath = tokens[1];
 
-                //헤더 처리
-                int requestContentLength = 0;
-                while (true) {
-                    final String line = br.readLine();
-                    if (line.equals("")) {
-                        break;
-                    }
-                    if (line.startsWith("Content-Length")) {
-                        requestContentLength = Integer.parseInt(line.split(": ")[1]);
-                    }
+                // POST 방식 처리
+                if (method == HttpMethod.POST) {
+                    handlePostRequest(br, dos, filePath);
                 }
-                //요청 본문 읽기
-                //쿼리파라미터로 변환해서 유저 인스턴스 생성
-                String body = IOUtils.readData(br, requestContentLength);
-                Map<String, String> queryParms = HttpRequestUtils.parseQueryParameter(body);
-
-                if(filePath.startsWith("/user/login")){
-                    //유저 인스턴스 생성
-                    String userId = queryParms.get("userId");
-                    String password = queryParms.get("password");
-
-                    //Repository에서 찾기
-                    User user = MemoryUserRepository.getInstance().findUserById(userId);
-
-                    // 로그 추가: 유저 정보와 입력된 비밀번호 확인
-                    if (user != null) {
-                        log.log(Level.INFO, "User found: " + userId + ", Password: " + user.getPassword());
-                    } else {
-                        log.log(Level.WARNING, "User not found: " + userId);
-                    }
-                    log.log(Level.INFO, "Attempting to log in with password: " + password);
-
-                    //로그인 성공 확인
-                    if(user != null && user.getPassword().equals(password)){
-                        responseRedirectWithCookie(dos, "/", "logined=true");
-                    }else{
-                        responseRedirect(dos, "/user/login_failed.html");
-                    }
-                    return;
-                }
-                // 회원가입 처리 (POST 방식)
-                if (filePath.startsWith("/user/signup")) {
-                    String userId = queryParms.get("userId");
-                    String password = queryParms.get("password");
-                    String name = queryParms.get("name");
-                    String email = queryParms.get("email");
-
-                    User newUser = new User(userId, password, name, email);
-
-                    // 유저 저장
-                    MemoryUserRepository.getInstance().addUser(newUser);
-
-                    // 302 리다이렉트
-                    responseRedirect(dos, "/"); // 홈으로 리다이렉트
-                    return;
+                // GET 방식 처리
+                else if (method == HttpMethod.GET) {
+                    handleGetRequest(br, dos, filePath);
                 }
 
-            }
-
-            //GET 처리
-            if(requestLine != null && requestLine.startsWith("GET")) {
-                String[] tokens = requestLine.split(" ");
-                String filePath = tokens[1];
-                // 유저 리스트 요청 처리
-                if (filePath.startsWith("/user/userList")) {
-                    // Cookie 확인
-                    String cookieHeader = null;
-                    String line;
-                    while (!(line = br.readLine()).isEmpty()) {
-                        if (line.startsWith("Cookie:")) {
-                            cookieHeader = line.split(": ")[1];
-                        }
-                    }
-
-                    // Cookie가 존재하고 logined=true인지 확인
-                    if (cookieHeader != null && cookieHeader.contains("logined=true")) {
-                        // 로그인된 경우 유저 리스트 화면 띄움
-                        String userListPage = "webapp/user/list.html";
-                        File file = new File(userListPage);
-                        if (file.exists() && !file.isDirectory()) {
-                            byte[] body = Files.readAllBytes(Paths.get(userListPage));
-                            response200Header(dos, body.length, "text/html;charset=utf-8");
-                            responseBody(dos, body);
-                        } else {
-                            response404Header(dos); // 파일이 존재하지 않을 경우 404 에러 처리
-                        }
-                    } else {
-                        // 로그인되지 않은 경우 로그인 페이지로 리다이렉트
-                        responseRedirect(dos, "/user/login.html");
-                    }
-                    return; // 유저 리스트 요청 처리 후 종료
-                }
-
-                // CSS 파일 요청 처리
-                if (filePath.endsWith(".css")) {
-                    String fullPath = "webapp" + filePath; // 요청된 CSS 파일 경로
-                    File file = new File(fullPath);
-                    if (file.exists() && !file.isDirectory()) {
-                        // 파일이 존재할 경우
-                        byte[] body = Files.readAllBytes(Paths.get(fullPath));
-                        response200Header(dos, body.length, "text/css"); // Content-Type을 text/css로 설정
-                        responseBody(dos, body);
-                    } else {
-                        // 파일이 존재하지 않을 경우 404 에러 처리
-                        response404Header(dos);
-                    }
-                    return;
-                }
-
-                if("/".equals(filePath)){
-                    filePath = "/index.html";
-                }
-                //파일 경로 ㅓㅅㄹ정
-                String fullPath = "webapp" + filePath;
-                File file = new File(fullPath);
-                if (file.exists() && !file.isDirectory()) {
-                    // 파일이 존재할 경우
-                    byte[] body = Files.readAllBytes(Paths.get(fullPath));
-                    response200Header(dos, body.length, getContentType(filePath));
-                    responseBody(dos, body);
-                } else {
-                    // 파일이 존재하지 않을 경우
-                    response404Header(dos);
-                }
             }
         } catch (IOException e) {
             log.log(Level.SEVERE,e.getMessage());
         }
     }
 
+    private void handlePostRequest(BufferedReader br, DataOutputStream dos, String filePath)throws IOException{
+        //헤더 처리
+        int requestContentLength = 0;
+        String line;
+        while (true) {
+            line = br.readLine();
+            if (line.equals("")) {
+                break;
+            }
+            if (line.startsWith("Content-Length")) {
+                requestContentLength = Integer.parseInt(line.split(": ")[1]);
+            }
+        }
+        //요청 본문 읽기
+        //쿼리파라미터로 변환해서 유저 인스턴스 생성
+        String body = IOUtils.readData(br, requestContentLength);
+        Map<String, String> queryParms = HttpRequestUtils.parseQueryParameter(body);
+
+        if(filePath.startsWith(URL.USER_LOGIN.getPath())){
+            //유저 인스턴스 생성
+            String userId = queryParms.get(UserQueryKey.USER_ID.getKey());
+            String password = queryParms.get(UserQueryKey.PASSWORD.getKey());
+
+            //Repository에서 찾기
+            User user = MemoryUserRepository.getInstance().findUserById(userId);
+
+            //로그인 성공 확인
+            if(user != null && user.getPassword().equals(password)){
+                responseRedirectWithCookie(dos, "/", "logined=true");
+            }else{
+                responseRedirect(dos, "/user/login_failed.html");
+            }
+            return;
+        }
+
+        // 회원가입 처리 (POST 방식)
+        if (filePath.startsWith(URL.USER_SIGNUP.getPath())) {
+            String userId = queryParms.get(UserQueryKey.USER_ID.getKey());
+            String password = queryParms.get(UserQueryKey.PASSWORD.getKey());
+            String name = queryParms.get(UserQueryKey.NAME.getKey());
+            String email = queryParms.get(UserQueryKey.EMAIL.getKey());
+
+            User newUser = new User(userId, password, name, email);
+
+            // 유저 저장
+            MemoryUserRepository.getInstance().addUser(newUser);
+
+            // 302 리다이렉트
+            responseRedirect(dos, "/"); // 홈으로 리다이렉트
+            return;
+        }
+    }
+
+    private void handleGetRequest(BufferedReader br, DataOutputStream dos, String filePath) throws IOException {
+        // 유저 리스트 요청 처리
+        if (filePath.startsWith(URL.USER_LIST.getPath())) {
+            String cookieHeader = null;
+            String line;
+            while (!(line = br.readLine()).isEmpty()) {
+                if (line.startsWith(HttpHeader.COOKIE.getHeader())) {
+                    cookieHeader = line.split(": ")[1];
+                }
+            }
+
+            // Cookie가 존재하고 logined=true인지 확인
+            if (cookieHeader != null && cookieHeader.contains("logined=true")) {
+                String userListPage = "webapp/user/list.html";
+                File file = new File(userListPage);
+                if (file.exists() && !file.isDirectory()) {
+                    byte[] body = Files.readAllBytes(Paths.get(userListPage));
+                    response200Header(dos, body.length, ContentType.HTML.getType());
+                    responseBody(dos, body);
+                } else {
+                    response404Header(dos);
+                }
+            } else {
+                responseRedirect(dos, "/user/login.html");
+            }
+            return; // 유저 리스트 요청 처리 후 종료
+        }
+
+        // CSS 파일 요청 처리
+        if (filePath.endsWith(".css")) {
+            String fullPath = "webapp" + filePath; // 요청된 CSS 파일 경로
+            File file = new File(fullPath);
+            if (file.exists() && !file.isDirectory()) {
+                byte[] body = Files.readAllBytes(Paths.get(fullPath));
+                response200Header(dos, body.length, ContentType.CSS.getType()); // Content-Type을 text/css로 설정
+                responseBody(dos, body);
+            } else {
+                response404Header(dos);
+            }
+            return;
+        }
+
+        if ("/".equals(filePath)) {
+            filePath = "/index.html";
+        }
+        // 파일 경로 설정
+        String fullPath = "webapp" + filePath;
+        File file = new File(fullPath);
+        if (file.exists() && !file.isDirectory()) {
+            byte[] body = Files.readAllBytes(Paths.get(fullPath));
+            response200Header(dos, body.length, getContentType(filePath));
+            responseBody(dos, body);
+        } else {
+            response404Header(dos);
+        }
+    }
+
     //쿠키 설정
     private void responseRedirectWithCookie(DataOutputStream dos, String location, String cookie) {
         try {
-            dos.writeBytes("HTTP/1.1 302 Found\r\n");
-            dos.writeBytes("Location: " + location + "\r\n");
+            dos.writeBytes("HTTP/1.1 " + HttpStatus.FOUND.getCode() + " " + HttpStatus.FOUND.getMessage() + "\r\n");
+            dos.writeBytes(HttpHeader.LOCATION.getHeader() + ": " + location + "\r\n");
             dos.writeBytes("Set-Cookie: " + cookie + "\r\n"); // 쿠키 설정
             dos.writeBytes("\r\n");
         } catch (IOException e) {
@@ -181,19 +176,19 @@ public class RequestHandler implements Runnable{
     }
     private void responseRedirect(DataOutputStream dos, String lacation) {
         try{
-            dos.writeBytes("HTTP/1.1 302 Found\r\n");
-            dos.writeBytes("Location: " + lacation + "\r\n");
+            dos.writeBytes("HTTP/1.1" + HttpStatus.FOUND.getCode() + " " + HttpStatus.FOUND.getMessage() + "\r\n");
+            dos.writeBytes(HttpHeader.LOCATION.getHeader() + ": " + lacation + "\r\n");
             dos.writeBytes("\r\n");
         }catch (IOException e){
             log.log(Level.SEVERE, e.getMessage());
         }
     }
 
-    private void response200Header(DataOutputStream dos, int lengthOfBodyContent, String contentType) {
+    private void response200Header(DataOutputStream dos, int lengthOfBodyContent, String contextType) {
         try {
-            dos.writeBytes("HTTP/1.1 200 OK \r\n");
-            dos.writeBytes("Content-Type: " + contentType + "\r\n");
-            dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
+            dos.writeBytes("HTTP/1.1 " + HttpStatus.OK.getCode() + " " + HttpStatus.OK.getMessage() + "\r\n");
+            dos.writeBytes(HttpHeader.CONTENT_TYPE.getHeader()+ ": " + ContentType.HTML.getType() + "\r\n");
+            dos.writeBytes(HttpHeader.CONTENT_LENGTH.getHeader()+": " + lengthOfBodyContent + "\r\n");
             dos.writeBytes("\r\n");
         } catch (IOException e) {
             log.log(Level.SEVERE, e.getMessage());
@@ -202,10 +197,10 @@ public class RequestHandler implements Runnable{
 
     private void response404Header(DataOutputStream dos) {
         try {
-            String body = "404 Not Found";
-            dos.writeBytes("HTTP/1.1 404 Not Found\r\n");
-            dos.writeBytes("Content-Type: text/html;charset=utf-8\r\n");
-            dos.writeBytes("Content-Length: " + body.length() + "\r\n");
+            String body = HttpStatus.NOT_FOUND.getMessage();
+            dos.writeBytes("HTTP/1.1 " + HttpStatus.NOT_FOUND.getCode() + " " + body + "\r\n");
+            dos.writeBytes(HttpHeader.CONTENT_TYPE.getHeader() + ": " + ContentType.HTML.getType() + "\r\n");
+            dos.writeBytes(HttpHeader.CONTENT_LENGTH.getHeader() + ": " + body.length() + "\r\n");
             dos.writeBytes("\r\n");
             dos.writeBytes(body);
             dos.flush();
@@ -225,17 +220,17 @@ public class RequestHandler implements Runnable{
     //파일 확장자로 데이터 형식 구분
     private String getContentType(String filePath) {
         if (filePath.endsWith(".html")) {
-            return "text/html;charset=utf-8";
+            return ContentType.HTML.getType();
         } else if (filePath.endsWith(".css")) {
-            return "text/css;charset=utf-8";
+            return ContentType.CSS.getType();
         } else if (filePath.endsWith(".js")) {
-            return "application/javascript;charset=utf-8";
+            return ContentType.JS.getType();
         } else if (filePath.endsWith(".png")) {
-            return "image/png";
+            return  ContentType.PNG.getType();
         } else if (filePath.endsWith(".jpg") || filePath.endsWith(".jpeg")) {
-            return "image/jpeg";
+            return ContentType.JPEG.getType();
         } else {
-            return "application/octet-stream"; // 기본 MIME 타입
+            return ContentType.OCTET_STREAM.getType();// 기본 MIME 타입
         }
     }
 
