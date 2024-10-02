@@ -48,25 +48,15 @@ public class RequestHandler implements Runnable{
             }
 
             if(url.startsWith(SIGNUP.getUrl())){
-                //요구사항 2
-                if (httpRequest.isGetMethod()) {
-                    //url에서 queryString 분리
-                    createNewUser(httpRequest.getQueryParametersfromUrl());
-                }
-                //요구사항 3
-                if (httpRequest.isPostMethod()) {
-                    //body에서 queryString 추출
-                    createNewUser(httpRequest.getQueryParametersfromBody());
-                }
+                //요구사항 2,3
+                createNewUser(httpRequest.getQueryParameters());
                 httpResponse.redirect(INDEX.getUrl(), httpRequest.isLogin());
                 return;
             }
 
             //요구사항 5
             if (url.equals(LOGIN.getUrl())) {
-                Map<String, String> loginInfo = httpRequest.getQueryParametersfromBody();
-                User findUser = findUser(loginInfo);
-                login(findUser, loginInfo, httpResponse);
+                login(httpRequest.getQueryParametersfromBody(), httpResponse);
                 return;
             }
 
@@ -93,16 +83,17 @@ public class RequestHandler implements Runnable{
 
     private static User findUser(Map<String, String> loginInfo) {
         MemoryUserRepository memoryUserRepository = MemoryUserRepository.getInstance();
-        User findUser = memoryUserRepository.findUserById(loginInfo.get(USER_ID.getKey()));
-        return findUser;
+        return memoryUserRepository.findUserById(loginInfo.get(USER_ID.getKey()));
     }
 
-    private void login(User findUser, Map<String, String> loginInfo, HttpResponse httpResponse) throws IOException {
+    //todo 로그인 성공한 후에 다시 로그인 창에 들어가서 로그인 실패하면??
+    private void login(Map<String, String> loginInfo, HttpResponse httpResponse) throws IOException {
+        User findUser = findUser(loginInfo);
         if (findUser != null && findUser.getPassword().equals(loginInfo.get(PASSWORD.getKey()))) {
             httpResponse.redirect(INDEX.getUrl(), true);
             return;
         }
-        httpResponse.redirect(LOGIN_FAILED.getUrl(), true);
+        httpResponse.redirect(LOGIN_FAILED.getUrl(), false);
     }
 
     private void createNewUser(Map<String, String> queryParameter) {

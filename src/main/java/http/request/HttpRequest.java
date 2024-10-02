@@ -64,6 +64,22 @@ public class HttpRequest {
         return httpRequestHeader.getLoginStatus();
     }
 
+
+    public Map<String, String> getQueryParameters() {
+        if (isGetMethod()) {
+            //url에서 queryString 분리
+            return getQueryParametersfromUrl();
+        }
+        if (isPostMethod()) {
+            //body에서 queryString 추출
+            return getQueryParametersfromBody();
+        }
+        else {
+            System.out.println("올바른 데이터 전송 방식이 아닙니다.");
+            return null;
+        }
+    }
+
     public Map<String, String> getQueryParametersfromBody() {
         //POST 메서드인 경우
         return HttpRequestUtils.parseQueryParameter(body);
