@@ -29,7 +29,7 @@ public class WebServer {
             Socket connection;
             while ((connection = welcomeSocket.accept()) != null) {
                 // 스레드에 작업 전달
-                service.submit(new RequestHandler(connection, MemoryUserRepository.getInstance()));
+                service.submit(new RequestHandler(connection));
             }
         }
 
