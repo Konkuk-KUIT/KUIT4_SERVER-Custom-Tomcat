@@ -14,13 +14,13 @@ public enum Url {
     USER_LIST_HTML("/user/list.html"),
     CSS_EXTENSION(".css");
 
-    final String value;
+    final String url;
 
-    private Url(String value){
-        this.value = value;
+    private Url(String url){
+        this.url = url;
     }
 
-    public String getValue() {
-        return value;
+    public String getUrl() {
+        return url;
     }
 }

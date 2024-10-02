@@ -7,13 +7,13 @@ public enum QueryKey {
     NAME("name"),
     EMAIL("email");
 
-    String value;
+    String key;
 
-    private QueryKey(String value){
-        this.value = value;
+    private QueryKey(String key){
+        this.key = key;
     }
 
-    public String getValue(){
-        return value;
+    public String getKey(){
+        return key;
     }
 }

@@ -5,13 +5,13 @@ public enum HttpMethod {
     GET("GET"),
     POST("POST");
 
-    final String value;
+    final String method;
 
-    private HttpMethod(String value) {
-        this.value = value;
+    private HttpMethod(String method) {
+        this.method = method;
     }
 
-    public String getValue() {
-        return value;
+    public String getMethod() {
+        return method;
     }
 }

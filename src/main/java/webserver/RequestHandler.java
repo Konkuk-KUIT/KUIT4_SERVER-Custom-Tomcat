@@ -1,22 +1,20 @@
 package webserver;
 
-import constant.*;
 import db.MemoryUserRepository;
 import db.Repository;
+import http.HttpRequest;
 import http.util.HttpRequestUtils;
-import http.util.IOUtils;
 import model.User;
 
 import java.io.*;
 import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static constant.HttpHeader.*;
+import static constant.HttpHeaderTitle.*;
 import static constant.HttpMethod.*;
 import static constant.QueryKey.*;
 import static constant.StatusCode.*;
@@ -38,41 +36,32 @@ public class RequestHandler implements Runnable {
             BufferedReader br = new BufferedReader(new InputStreamReader(in));
             DataOutputStream dos = new DataOutputStream(out);
 
-            // 요청 읽기
-            String requestLine = br.readLine();
-
-            // 요청 path 읽기
-            String[] requestParts = requestLine.split(" ");
-            String method = requestParts[0];
-            String path = requestParts[1];   // 0: HTTP Method, 1: request URL, 2: HTTP Version
+            HttpRequest httpRequest = HttpRequest.from(br);
 
             // 요구사항 1
             //80 포트로 들어오거나, index.html로 주소가 들어올 경우 index.html을 출력하도록 함
-            if (path.equals(ROOT.getValue()) || path.equals(INDEX_HTML.getValue())) {
-                byte[] body = Files.readAllBytes(Paths.get(WEBAPP.getValue() + INDEX_HTML.getValue()));
+            if (httpRequest.getUrl().equals(ROOT.getUrl()) || httpRequest.getUrl().equals(INDEX_HTML.getUrl())) {
+                byte[] body = Files.readAllBytes(Paths.get(WEBAPP.getUrl() + INDEX_HTML.getUrl()));
                 response200Header(dos, body.length);
                 responseBody(dos, body);
             }
 
             // 요구사항 2
-            if (method.equals(GET.getValue()) && path.equals(USER_FORM_HTML.getValue())) {
-                byte[] body = Files.readAllBytes(Paths.get(WEBAPP.getValue() + USER_FORM_HTML.getValue()));
+            if (httpRequest.getMethod().equals(GET.getMethod()) && httpRequest.getUrl().equals(USER_FORM_HTML.getUrl())) {
+                byte[] body = Files.readAllBytes(Paths.get(WEBAPP.getUrl() + USER_FORM_HTML.getUrl()));
                 response200Header(dos, body.length);
                 responseBody(dos, body);
             }
 
             // 요구사항 2
-            if (method.equals(GET.getValue()) && path.contains(USER_SIGNUP.getValue())) {
+            if (httpRequest.getMethod().equals(GET.getMethod()) && httpRequest.getUrl().contains(USER_SIGNUP.getUrl())) {
 
-                if (path.contains("?")) {
-                    // URL 에서 쿼리 파라미터 분리
-                    String queryString = subtractQueryParameters(path);
-                    Map<String, String> queryParameters = HttpRequestUtils.parseQueryParameter(queryString);
+                if (httpRequest.getUrl().contains("?")) {
 
-                    String userId = queryParameters.get(USERID.getValue());
-                    String password = queryParameters.get(PASSWORD.getValue());
-                    String name = queryParameters.get(NAME.getValue());
-                    String email = queryParameters.get(EMAIL.getValue());
+                    String userId = httpRequest.getQueryParamValue(USERID.getKey());
+                    String password = httpRequest.getQueryParamValue(PASSWORD.getKey());
+                    String name = httpRequest.getQueryParamValue(NAME.getKey());
+                    String email = httpRequest.getQueryParamValue(EMAIL.getKey());
 
                     User user = new User(userId, password, name, email);
 
@@ -86,31 +75,12 @@ public class RequestHandler implements Runnable {
             // 요구사항 3
             // POST 방식으로 전송하면 쿼리 파라미터가 사라진다. 즉 parseQueryParameter를 통해서 값을 얻어올 수 없다.
             // 대신 POST 방식에서는 이 쿼리 파라미터가 body 안에 들어간다.
-            if (method.equals(POST.getValue()) && path.equals(USER_SIGNUP.getValue())) {
+            if (httpRequest.getMethod().equals(POST.getMethod()) && httpRequest.getUrl().equals(USER_SIGNUP.getUrl())) {
 
-                int requestContentLength = 0;
-
-                while (true) {
-                    final String line = br.readLine();
-                    if (line.equals("")) {
-                        break;
-                    }
-
-                    // header info
-                    if (line.startsWith(CONTENT_LENGTH.getValue())) {
-                        requestContentLength = Integer.parseInt(line.split(": ")[1]);
-                    }
-                }
-
-                String requestBody = IOUtils.readData(br, requestContentLength);
-
-                String queryString = subtractQueryParameters(requestBody);
-                Map<String, String> queryParameters = HttpRequestUtils.parseQueryParameter(queryString);
-
-                String userId = queryParameters.get(USERID.getValue());
-                String password = queryParameters.get(PASSWORD.getValue());
-                String name = queryParameters.get(NAME.getValue());
-                String email = queryParameters.get(EMAIL.getValue());
+                String userId = httpRequest.getBodyParamValue(USERID.getKey());
+                String password = httpRequest.getBodyParamValue(PASSWORD.getKey());
+                String name = httpRequest.getBodyParamValue(NAME.getKey());
+                String email = httpRequest.getBodyParamValue(EMAIL.getKey());
 
                 User user = new User(userId, password, name, email);
 
@@ -121,37 +91,17 @@ public class RequestHandler implements Runnable {
             }
 
             // 요구사항 5
-            if (path.equals(USER_LOGIN_HTML.getValue())) {
-                byte[] body = Files.readAllBytes(Paths.get(WEBAPP.getValue() + USER_LOGIN_HTML.getValue()));
+            if (httpRequest.getUrl().equals(USER_LOGIN_HTML.getUrl())) {
+                byte[] body = Files.readAllBytes(Paths.get(WEBAPP.getUrl() + USER_LOGIN_HTML.getUrl()));
                 response200Header(dos, body.length);
                 responseBody(dos, body);
             }
 
             // 요구사항 5
-            if (path.equals(USER_LOGIN.getValue())) {
+            if (httpRequest.getUrl().equals(USER_LOGIN.getUrl())) {
 
-                int requestContentLength = 0;
-
-                while (true) {
-                    final String line = br.readLine();
-                    if (line.equals("")) {
-                        break;
-                    }
-
-                    // header info
-                    if (line.startsWith(CONTENT_LENGTH.getValue())) {
-                        requestContentLength = Integer.parseInt(line.split(": ")[1]);
-                    }
-                }
-
-                String requestBody = IOUtils.readData(br, requestContentLength);
-
-                String queryString = subtractQueryParameters(requestBody);
-
-                Map<String, String> queryParameters = HttpRequestUtils.parseQueryParameter(queryString);
-
-                String userId = queryParameters.get(USERID.getValue());
-                String password = queryParameters.get(PASSWORD.getValue());
+                String userId = httpRequest.getBodyParamValue(USERID.getKey());
+                String password = httpRequest.getBodyParamValue(PASSWORD.getKey());
 
 
                 User findUser = repository.findUserById(userId);
@@ -179,37 +129,16 @@ public class RequestHandler implements Runnable {
             }
 
             // 요구사항 5
-            if (path.equals(USER_LOGIN_FAILED_HTML.getValue())) {
-                byte[] body = Files.readAllBytes(Paths.get(WEBAPP.getValue() + USER_LOGIN_FAILED_HTML.getValue()));
+            if (httpRequest.getUrl().equals(USER_LOGIN_FAILED_HTML.getUrl())) {
+                byte[] body = Files.readAllBytes(Paths.get(WEBAPP.getUrl() + USER_LOGIN_FAILED_HTML.getUrl()));
                 response200Header(dos, body.length);
                 responseBody(dos, body);
             }
 
             // 요구사항 6
-            if (path.equals(USER_USERLIST.getValue())) {
+            if (httpRequest.getUrl().equals(USER_USERLIST.getUrl())) {
 
-                boolean login = false;
-
-                while (true) {
-                    final String line = br.readLine();
-                    if (line.equals("")) {
-                        break;
-                    }
-
-                    if (line.startsWith(COOKIE.getValue())) {
-                        String loginState = line.split(": ")[1];
-
-                        if (loginState.equals("logined=true")) {
-                            login = true;
-                        }
-
-                        if (loginState.equals("logined=false")) {
-                            login = false;
-                        }
-                    }
-                }
-
-                log.log(Level.INFO, "login: " + login);
+                boolean login = httpRequest.checkLogin();
 
                 if (login) {
                     response302UserListHeader(dos);
@@ -219,31 +148,12 @@ public class RequestHandler implements Runnable {
             }
 
             // 요구사항 6
-            if (path.equals(USER_LIST_HTML.getValue())) {
+            if (httpRequest.getUrl().equals(USER_LIST_HTML.getUrl())) {
 
-                boolean login = false;
-
-                while (true) {
-                    final String line = br.readLine();
-                    if (line.equals("")) {
-                        break;
-                    }
-
-                    if (line.startsWith(COOKIE.getValue())) {
-                        String loginState = line.split(": ")[1];
-
-                        if (loginState.equals("logined=true")) {
-                            login = true;
-                        }
-
-                        if (loginState.equals("logined=false")) {
-                            login = false;
-                        }
-                    }
-                }
+                boolean login = httpRequest.checkLogin();
 
                 if (login) {
-                    byte[] body = Files.readAllBytes(Paths.get(WEBAPP.getValue() + USER_LIST_HTML.getValue()));
+                    byte[] body = Files.readAllBytes(Paths.get(WEBAPP.getUrl() + USER_LIST_HTML.getUrl()));
                     response200Header(dos, body.length);
                     responseBody(dos, body);
                 } else {
@@ -253,8 +163,8 @@ public class RequestHandler implements Runnable {
 
             // 요구사항 7
             // .css 파일 요청 처리
-            if (path.endsWith(CSS_EXTENSION.getValue())) {
-                byte[] body = Files.readAllBytes(Paths.get(WEBAPP.getValue() + "/" + path));
+            if (httpRequest.getUrl().endsWith(CSS_EXTENSION.getUrl())) {
+                byte[] body = Files.readAllBytes(Paths.get(WEBAPP.getUrl() + "/" + httpRequest.getUrl()));
                 responseCssHeader(dos, body.length);  // css 응답 헤더 설정
                 responseBody(dos, body);  // css 파일 내용 전송
             }
@@ -265,15 +175,11 @@ public class RequestHandler implements Runnable {
         }
     }
 
-    private String subtractQueryParameters(String path) {
-        return path.substring(path.indexOf("?") + 1);
-    }
-
     private void response200Header(DataOutputStream dos, int lengthOfBodyContent) {
         try {
-            dos.writeBytes("HTTP/1.1 " + OK.getValue() + " \r\n");
-            dos.writeBytes(CONTENT_TYPE.getValue() + ": text/html;charset=utf-8\r\n");
-            dos.writeBytes(CONTENT_LENGTH.getValue() + ": " + lengthOfBodyContent + "\r\n");
+            dos.writeBytes("HTTP/1.1 " + OK.getStatusCode() + " \r\n");
+            dos.writeBytes(CONTENT_TYPE.getHeaderTitle() + ": text/html;charset=utf-8\r\n");
+            dos.writeBytes(CONTENT_LENGTH.getHeaderTitle() + ": " + lengthOfBodyContent + "\r\n");
             dos.writeBytes("\r\n");
         } catch (IOException e) {
             log.log(Level.SEVERE, e.getMessage());
@@ -284,8 +190,8 @@ public class RequestHandler implements Runnable {
     // 그냥 index.html로 redirect
     private void response302Header(DataOutputStream dos) {
         try {
-            dos.writeBytes("HTTP/1.1 " + Found.getValue() + " \r\n");
-            dos.writeBytes(LOCATION.getValue() + ": " + INDEX_HTML.getValue() + "\r\n");
+            dos.writeBytes("HTTP/1.1 " + Found.getStatusCode() + " \r\n");
+            dos.writeBytes(LOCATION.getHeaderTitle() + ": " + INDEX_HTML.getUrl() + "\r\n");
             dos.writeBytes("\r\n");
         } catch (IOException e) {
             log.log(Level.SEVERE, e.getMessage());
@@ -296,9 +202,9 @@ public class RequestHandler implements Runnable {
     // 로그인 성공시 index.html로 redirect
     private void response302LoginSuccessHeader(DataOutputStream dos) {
         try {
-            dos.writeBytes("HTTP/1.1 " + Found.getValue() + " \r\n");
-            dos.writeBytes(LOCATION.getValue() + ": " + INDEX_HTML.getValue() + "\r\n");
-            dos.writeBytes(SET_COOKIE.getValue() + ": logined=true\r\n");  // 쿠키 설정
+            dos.writeBytes("HTTP/1.1 " + Found.getStatusCode() + " \r\n");
+            dos.writeBytes(LOCATION.getHeaderTitle() + ": " + INDEX_HTML.getUrl() + "\r\n");
+            dos.writeBytes(SET_COOKIE.getHeaderTitle() + ": logined=true\r\n");  // 쿠키 설정
             dos.writeBytes("\r\n");
         } catch (IOException e) {
             log.log(Level.SEVERE, e.getMessage());
@@ -309,9 +215,9 @@ public class RequestHandler implements Runnable {
     // 로그인 실패 화면으로 redirect
     private void response302LoginFailureHeader(DataOutputStream dos) {
         try {
-            dos.writeBytes("HTTP/1.1 " + Found.getValue() + " \r\n");
-            dos.writeBytes(LOCATION.getValue() + ": " + USER_LOGIN_FAILED_HTML.getValue() + "\r\n");
-            dos.writeBytes(SET_COOKIE.getValue() + ": logined=false\r\n");  // 쿠키 설정
+            dos.writeBytes("HTTP/1.1 " + Found.getStatusCode() + " \r\n");
+            dos.writeBytes(LOCATION.getHeaderTitle() + ": " + USER_LOGIN_FAILED_HTML.getUrl() + "\r\n");
+            dos.writeBytes(SET_COOKIE.getHeaderTitle() + ": logined=false\r\n");  // 쿠키 설정
             dos.writeBytes("\r\n");
         } catch (IOException e) {
             log.log(Level.SEVERE, e.getMessage());
@@ -322,8 +228,8 @@ public class RequestHandler implements Runnable {
     // user list 화면으로 redirect
     private void response302UserListHeader(DataOutputStream dos) {
         try {
-            dos.writeBytes("HTTP/1.1 " + Found.getValue() + " \r\n");
-            dos.writeBytes(LOCATION.getValue() + ": " + USER_LIST_HTML.getValue() + "\r\n");
+            dos.writeBytes("HTTP/1.1 " + Found.getStatusCode() + " \r\n");
+            dos.writeBytes(LOCATION.getHeaderTitle() + ": " + USER_LIST_HTML.getUrl() + "\r\n");
             dos.writeBytes("\r\n");
         } catch (IOException e) {
             log.log(Level.SEVERE, e.getMessage());
@@ -334,8 +240,8 @@ public class RequestHandler implements Runnable {
     // 로그인 화면으로 redirect
     private void response302LoginHeader(DataOutputStream dos) {
         try {
-            dos.writeBytes("HTTP/1.1 " + Found.getValue() + " \r\n");
-            dos.writeBytes(LOCATION.getValue() + ": " + USER_LOGIN_HTML.getValue() + "\r\n");
+            dos.writeBytes("HTTP/1.1 " + Found.getStatusCode() + " \r\n");
+            dos.writeBytes(LOCATION.getHeaderTitle() + ": " + USER_LOGIN_HTML.getUrl() + "\r\n");
             dos.writeBytes("\r\n");
         } catch (IOException e) {
             log.log(Level.SEVERE, e.getMessage());
@@ -346,9 +252,9 @@ public class RequestHandler implements Runnable {
     // css 화면 적용
     private void responseCssHeader(DataOutputStream dos, int lengthOfBodyContent) {
         try {
-            dos.writeBytes("HTTP/1.1 " + OK.getValue() + " \r\n");
-            dos.writeBytes(CONTENT_TYPE.getValue() + ": text/css;charset=utf-8\r\n");  // Content-Type을 text/css로 설정
-            dos.writeBytes(CONTENT_LENGTH.getValue() + ": " + lengthOfBodyContent + "\r\n");
+            dos.writeBytes("HTTP/1.1 " + OK.getStatusCode() + " \r\n");
+            dos.writeBytes(CONTENT_TYPE.getHeaderTitle() + ": text/css;charset=utf-8\r\n");  // Content-Type을 text/css로 설정
+            dos.writeBytes(CONTENT_LENGTH.getHeaderTitle() + ": " + lengthOfBodyContent + "\r\n");
             dos.writeBytes("\r\n");
         } catch (IOException e) {
             log.log(Level.SEVERE, e.getMessage());

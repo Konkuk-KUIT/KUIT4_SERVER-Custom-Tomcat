@@ -6,13 +6,13 @@ public enum StatusCode {
     Found("302 Found");
 
 
-    final String value;
+    final String code;
 
-    private StatusCode(String value) {
-        this.value = value;
+    private StatusCode(String code) {
+        this.code = code;
     }
 
-    public String getValue() {
-        return value;
+    public String getStatusCode() {
+        return code;
     }
 }
