@@ -1,8 +1,8 @@
 package http.constant;
 
 public enum HttpStatus {
-    OK("200 OK"),
-    REDIRECT("302 Redirect");
+    OK("OK"),
+    REDIRECT("Redirect");
 
 
     private String status;
