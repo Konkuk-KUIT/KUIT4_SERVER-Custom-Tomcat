@@ -1,6 +1,7 @@
 package webserver;
 
 import db.MemoryUserRepository;
+import db.Repository;
 import model.User;
 import webserver.controller.*;
 
@@ -14,29 +15,11 @@ import java.util.logging.Logger;
 public class RequestHandler implements Runnable{
     Socket connection;
     private static final Logger log = Logger.getLogger(RequestHandler.class.getName());
-    private MemoryUserRepository userRepository;
-    private final Map<String, Controller> controllers;
+    private Repository userRepository;
     // 여기서 repository DI 받음
-    public RequestHandler(Socket connection , MemoryUserRepository userRepository) {
+    public RequestHandler(Socket connection , Repository userRepository) {
         this.connection = connection;
         this.userRepository = userRepository;
-        this.controllers = new HashMap<>();
-        initializeControllers();
-    }
-
-    private void initializeControllers() {
-        LoginController loginController = new LoginController();
-        SignUpController signUpController = new SignUpController();
-
-        // DI 완료!!!
-        loginController.setUserRepository(userRepository);
-        signUpController.setUserRepository(userRepository);
-
-        // controllers 맵에 등록
-        controllers.put("/user/signup", signUpController);
-        controllers.put("/user/login", loginController);
-        controllers.put("/user/userList", new ListController());
-        controllers.put("/", new HomeController());
     }
 
 
@@ -51,19 +34,13 @@ public class RequestHandler implements Runnable{
             HttpRequest httpRequest = HttpRequest.from(br);
             HttpResponse httpResponse = new HttpResponse(dos);
 
-            Controller controller = controllers.get(httpRequest.getPath());
-            if (controller != null) {
-                controller.execute(httpRequest, httpResponse);
-            } else {
-                //todo 404 Not Found 처리
+            RequestMapper requestMapper = new RequestMapper(httpRequest, httpResponse, userRepository);
+            requestMapper.proceed();
 
-                // GET 요청이고 루트패스가 아닌것으로 끝나는 경우 ForwardController 사용
-                if (httpRequest.getMethod().equals("GET")) {
-                forwardController.execute(httpRequest, httpResponse);
-                }
+            } catch (IOException e) {
+                log.log(Level.SEVERE,e.getMessage());
             }
-
-
+        }
 
 
 
@@ -130,10 +107,7 @@ public class RequestHandler implements Runnable{
 //        }
 
 
-    } catch (IOException e) {
-            log.log(Level.SEVERE,e.getMessage());
-        }
-    }
+
 
 //    private void response302RedirectWithCookie(DataOutputStream dos, String url, String cookie) {
 //        try {
