@@ -1,5 +1,6 @@
-import constant.QueryKey;
-import http.HttpRequest;
+package http;
+
+import http.request.HttpRequest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -21,7 +22,7 @@ public class HttpRequestTest {
     @Test
     @DisplayName("http 요청 받아오기 테스트")
     void http_request_test() throws IOException {
-        HttpRequest httpRequest = HttpRequest.from(bufferedReaderFromFile("src/test/resource/" + "test.txt"));
+        HttpRequest httpRequest = HttpRequest.from(bufferedReaderFromFile("src/test/resource/" + "requestTest.txt"));
 
         assertEquals("/user/create", httpRequest.getUrl());
         assertEquals("POST", httpRequest.getMethod());

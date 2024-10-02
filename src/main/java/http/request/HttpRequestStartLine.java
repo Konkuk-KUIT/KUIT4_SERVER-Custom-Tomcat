@@ -1,4 +1,4 @@
-package http;
+package http.request;
 
 import http.util.HttpRequestUtils;
 
@@ -7,7 +7,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-public class HttpStartLine {
+public class HttpRequestStartLine {
 
     private String method;
     private String url;
@@ -15,10 +15,7 @@ public class HttpStartLine {
 
     private Map<String, String> queryParamMap;
 
-    private BufferedReader br;
-
-    private HttpStartLine(BufferedReader br) throws IOException {
-        this.br = br;
+    private HttpRequestStartLine(BufferedReader br) throws IOException {
         queryParamMap = new HashMap<>();
 
         String requestLine = br.readLine();
@@ -35,8 +32,8 @@ public class HttpStartLine {
         }
     }
 
-    public static HttpStartLine from(BufferedReader br) throws IOException {
-        return new HttpStartLine(br);
+    public static HttpRequestStartLine from(BufferedReader br) throws IOException {
+        return new HttpRequestStartLine(br);
     }
 
     public String getMethod() {

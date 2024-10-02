@@ -1,22 +1,22 @@
-package http;
+package http.request;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-public class HttpHeader {
+public class HttpRequestHeader {
 
     private Map<String, String> headerMap;
     private BufferedReader br;
 
-    private HttpHeader(BufferedReader br) throws IOException {
+    private HttpRequestHeader(BufferedReader br) throws IOException {
         this.headerMap = new HashMap<>();
         this.br = br;
     }
 
-    public static HttpHeader from(BufferedReader br) throws IOException {
-        return new HttpHeader(br);
+    public static HttpRequestHeader from(BufferedReader br) throws IOException {
+        return new HttpRequestHeader(br);
     }
 
     public String getValue(String key) {

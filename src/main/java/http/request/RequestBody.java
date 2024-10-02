@@ -1,4 +1,4 @@
-package http;
+package http.request;
 
 import http.util.HttpRequestUtils;
 import http.util.IOUtils;
@@ -8,19 +8,19 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-public class Body {
+public class RequestBody {
 
     String body;
     Map<String, String> bodyMap;
     BufferedReader br;
 
-    private Body(BufferedReader br) throws IOException {
+    private RequestBody(BufferedReader br) throws IOException {
         this.br = br;
         bodyMap = new HashMap<>();
     }
 
-    public static Body from(BufferedReader br) throws IOException {
-        return new Body(br);
+    public static RequestBody from(BufferedReader br) throws IOException {
+        return new RequestBody(br);
     }
 
     public void setBody(int requestContentLength) throws IOException {
