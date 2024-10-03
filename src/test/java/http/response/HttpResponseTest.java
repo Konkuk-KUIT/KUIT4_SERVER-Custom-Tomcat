@@ -19,7 +19,7 @@ public class HttpResponseTest {
     @Test
     void HttpResponse_정상_동작() throws IOException {
         HttpResponse httpResponse = new HttpResponse(outputStreamToFile(directory+path));
-        httpResponse.forward("/index.html");
+        httpResponse.forward("/user/login.html");
         assertThat(httpResponse.getStartLine().getStatusCode()).isEqualTo("200");
         assertThat(httpResponse.getStartLine().getVersion()).isEqualTo("HTTP/1.1");
         assertThat(httpResponse.getStartLine().getHttpStatus()).isEqualTo(OK);

@@ -1,61 +1,59 @@
 package http.response;
 
 import http.constant.HttpHeaderType;
-import http.constant.HttpStatus;
 import http.request.HttpHeader;
 
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.Map;
 
 import static http.constant.HttpHeaderType.*;
 import static http.constant.HttpStatus.*;
 import static http.constant.HttpURL.*;
-
+//todo httpresponse header,body가 비어있음.
 public class HttpResponse {
-    private final OutputStream outputStream;
+    private final OutputStream os;
     private byte[] body;
     private final HttpHeader header;
-    private final HttpResponseStartLine startLine;
+    private HttpResponseStartLine startLine = new HttpResponseStartLine();
 
     public HttpResponse(OutputStream outputStream) {
-        this.outputStream = outputStream;
+        this.os = new DataOutputStream(outputStream);
         this.body = new byte[0];
         header = new HttpHeader(new HashMap<>());
-        header.putHeader(HttpHeaderType.CONTENT_TYPE,"text/css;charset=utf-8");
-        startLine = new HttpResponseStartLine();
+        header.putHeader(CONTENT_TYPE,"text/html;charset=utf-8");
     }
 
-    public void makeResponseMessage() throws IOException{
-        outputStream.write((startLine.getVersion() + " " + startLine.getStatusCode() + " " + startLine.getHttpStatus() + "\r\n").getBytes());
-        outputStream.write(header.toString().getBytes());
-        outputStream.write(body);
-        outputStream.flush();
+
+    public void writeResponseMessage() throws IOException{
+        writeStartLineHeader();
+        os.write(body);
+        os.flush();
     }
 
     public void addBodyContents(String path) throws IOException {
-        this.body = Files.readAllBytes(Paths.get(ROOT.getUrl() + path));
-        header.putHeader(CONTENT_LENGTH,String.valueOf(body.length));
+        byte[] body = Files.readAllBytes(Paths.get(ROOT.getUrl() + path));
+        put(CONTENT_LENGTH,String.valueOf(body.length));
+        this.body = body;
     }
 
     public void forward(String targetPath) throws IOException {
         addBodyContents(targetPath);
-        if(targetPath.endsWith(".html")){
-            makeResponseMessage();
+        if(isHtml(targetPath)){
+            writeResponseMessage();
+            return;
         }
-        header.putHeader(CONTENT_TYPE,"text/css");
-        makeResponseMessage();
-
+        put(CONTENT_TYPE,"text/css");
+        writeResponseMessage();
     }
 
-    public OutputStream getOutputStream() {
-        return outputStream;
-    }
-
-    public byte[] getBody() {
-        return body;
+    private boolean isHtml(String targetPath) {
+        String[] paths = targetPath.split("\\.");
+        return paths[paths.length-1].equals("html");
     }
 
     public HttpHeader getHeader() {
@@ -69,7 +67,28 @@ public class HttpResponse {
     public void response302(String path) throws IOException {
         startLine.setHttpStatus(REDIRECT);
         startLine.setStatusCode("302");
-        addBodyContents(path);
-        makeResponseMessage();
+        put(LOCATION,path);
+        writeStartLineHeader();
+
+
     }
+
+    private void writeStartLineHeader() throws IOException {
+        os.write((startLine.getVersion() + " " + startLine.getStatusCode() + " " + startLine.getHttpStatus() + "\r\n").getBytes());
+        Map<HttpHeaderType, String> headerMap = header.getHeaderMap();
+        for (Map.Entry<HttpHeaderType, String> headerEntry : headerMap.entrySet()) {
+            os.write((headerEntry.getKey() + ": " + headerEntry.getValue() + "\r\n").getBytes());
+        }
+        os.write("\r\n".getBytes());
+    }
+
+    public void put(HttpHeaderType key, String value) {
+        header.put(key, value);
+    }
+
+
+
+
+
+
 }

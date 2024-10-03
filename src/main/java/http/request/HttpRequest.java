@@ -1,12 +1,16 @@
 package http.request;
 
+import controller.Controller;
+import http.constant.HttpHeaderType;
 import http.constant.HttpMethod;
+import http.util.HttpRequestUtils;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.Map;
 
 import static http.constant.HttpHeaderType.*;
+import static http.constant.HttpURL.INDEX;
 import static http.util.IOUtils.*;
 
 public class HttpRequest {
@@ -24,15 +28,7 @@ public class HttpRequest {
         return startLine;
     }
 
-    public HttpHeader getHeader() {
-        return header;
-    }
-
-    public String getBody() {
-        return body;
-    }
-
-    public static HttpRequest from(BufferedReader br) throws IOException {
+    public static HttpRequest from(final BufferedReader br) throws IOException {
         final String startLine = br.readLine();
         if(startLine == null) {
             throw new IllegalArgumentException();
@@ -43,22 +39,34 @@ public class HttpRequest {
 
         return new HttpRequest(httpRequestStartLine,httpRequestHeader,HttpBody);
     }
-
     private static String readRequestBody(final BufferedReader br, final HttpHeader httpRequestHeader) throws IOException {
-        if(!httpRequestHeader.header.containsKey(CONTENT_LENGTH)) return "";
+        if(!httpRequestHeader.getHeader().containsKey(CONTENT_LENGTH)) return "";
 
         final int requestContentLength = Integer.parseInt(httpRequestHeader.getValue(CONTENT_LENGTH));
         return readData(br,requestContentLength);
 
     }
 
-    public HttpMethod getHttpMethod(){
-        return startLine.getMethod();
+    public String getHttpMethod(){
+        return startLine.getMethod().getMethod();
+    }
+
+    public String getUrl(){
+        if (startLine.getTarget().equals("/")) {
+            return INDEX.getUrl();
+        }
+        return startLine.getTarget();
     }
 
    public Map<String, String> getQueryMap(){
-        return this.getStartLine().queryString;
+        return this.getStartLine().getQueryString();
    }
 
+    public final Map<String,String> getQueryFromBody() {
+        return HttpRequestUtils.parseQueryParameter(body);
+    }
 
+    public String getHeader(HttpHeaderType headerType) {
+        return header.getHeader().get(headerType);
+    }
 }

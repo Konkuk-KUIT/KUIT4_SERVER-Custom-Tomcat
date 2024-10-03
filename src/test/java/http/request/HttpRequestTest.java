@@ -23,7 +23,7 @@ public class HttpRequestTest {
     @Test
     public void HttpRequestTest() throws IOException {
         HttpRequest request = HttpRequest.from(bufferedReaderFromFile(Directory + Path));
-        assertThat(request.getHttpMethod()).isEqualTo(POST);
+        assertThat(request.getHttpMethod()).isEqualTo("POST");
         assertThat(request.getQueryMap().get("userId")).isEqualTo("dlwjddus1112");
     }
 }

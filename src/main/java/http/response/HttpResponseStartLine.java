@@ -31,5 +31,6 @@ public class HttpResponseStartLine {
     public void setHttpStatus(HttpStatus httpStatus) {
         this.httpStatus = httpStatus;
     }
+
 }
 
