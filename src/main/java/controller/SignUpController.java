@@ -1,5 +1,6 @@
 package controller;
 
+import constant.HttpMethod;
 import db.MemoryUserRepository;
 import db.Repository;
 import http.request.HttpRequest;
@@ -8,6 +9,7 @@ import model.User;
 
 import java.io.IOException;
 
+import static constant.HttpMethod.*;
 import static constant.QueryKey.*;
 import static constant.QueryKey.EMAIL;
 import static constant.Url.INDEX_HTML;
@@ -23,7 +25,7 @@ public class SignUpController implements Controller {
     @Override
     public void execute(HttpRequest request, HttpResponse response) throws IOException {
 
-        if (request.getMethod().equals("GET")) {
+        if (request.getMethod().equals(GET.getMethod())) {
             if (request.getUrl().contains("?")) {
 
                 String userId = request.getQueryParamValue(USERID.getKey());
@@ -39,7 +41,7 @@ public class SignUpController implements Controller {
             }
         }
 
-        if (request.getMethod().equals("POST")) {
+        if (request.getMethod().equals(POST.getMethod())) {
             String userId = request.getBodyParamValue(USERID.getKey());
             String password = request.getBodyParamValue(PASSWORD.getKey());
             String name = request.getBodyParamValue(NAME.getKey());

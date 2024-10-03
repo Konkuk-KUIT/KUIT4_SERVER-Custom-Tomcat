@@ -12,6 +12,7 @@ import java.util.Map;
 
 import static constant.HttpHeaderTitle.*;
 import static constant.StatusCode.*;
+import static constant.Url.CSS_EXTENSION;
 import static constant.Url.WEBAPP;
 
 public class HttpResponse {
@@ -38,7 +39,7 @@ public class HttpResponse {
         putHeader(CONTENT_LENGTH.getHeaderTitle(), String.valueOf(responseBody.getBodyLength()));
 
         String type = "text/html";
-        if(path.contains(".css")){
+        if(path.contains(CSS_EXTENSION.getUrl())){
             type = "text/css";
         }
 
@@ -57,7 +58,7 @@ public class HttpResponse {
         setStartLine(Found.getStatusCode(), Found.getMessage());
 
         // redirect에 필요한 헤더 삽입
-        putHeader("Location", path);
+        putHeader(LOCATION.getHeaderTitle(), path);
 
         writeResponseHeader();
     }
@@ -74,7 +75,7 @@ public class HttpResponse {
 
     private void writeResponseHeader() throws IOException {
         // startline을 outputStream에 적어주기
-        dos.writeBytes( httpResponseStartLine.getVersion() + " " + httpResponseStartLine.getStatusCode() + " " + httpResponseStartLine.getMessage() + "\r\n");
+        dos.writeBytes(httpResponseStartLine.getReponseStartLine());
 
         // 헤더들을 outputStream에 적어주기
         for(Map.Entry<String, String> entry : httpResponseHeader.getHeaderMap().entrySet()) {

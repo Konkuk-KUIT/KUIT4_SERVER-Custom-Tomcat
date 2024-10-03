@@ -1,10 +1,15 @@
 package http.request;
 
+import constant.HttpMethod;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 
 import static constant.HttpHeaderTitle.CONTENT_LENGTH;
 import static constant.HttpHeaderTitle.COOKIE;
+import static constant.HttpMethod.*;
+import static constant.Url.CSS_EXTENSION;
+import static constant.Url.HTML_EXTENSION;
 
 public class HttpRequest {
 
@@ -24,6 +29,21 @@ public class HttpRequest {
             requestBody.parseBody();
         }
 
+    }
+
+    // GET 요청인지 확인
+    public boolean isGetMethod(){
+        return httpRequestStartLine.getMethod().equals(GET.getMethod());
+    }
+
+    // url이 .html로 끝나는지 확인
+    public boolean endsWithHtml(){
+        return httpRequestStartLine.getUrl().endsWith(HTML_EXTENSION.getUrl());
+    }
+
+    // url이 .css로 끝나는지 확인
+    public boolean endsWithCss() {
+        return httpRequestStartLine.getUrl().endsWith(CSS_EXTENSION.getUrl());
     }
 
     public static HttpRequest from(BufferedReader br) throws IOException {

@@ -12,7 +12,8 @@ public enum Url {
     USER_LOGIN_FAILED_HTML("/user/login_failed.html"),
     USER_USERLIST("/user/userList"),
     USER_LIST_HTML("/user/list.html"),
-    CSS_EXTENSION(".css");
+    CSS_EXTENSION(".css"),
+    HTML_EXTENSION(".html");
 
     final String url;
 

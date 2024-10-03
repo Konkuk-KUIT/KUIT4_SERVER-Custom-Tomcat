@@ -26,4 +26,8 @@ public class HttpResponseStartLine {
     public String getVersion() {
         return VERSION;
     }
+
+    public String getReponseStartLine(){
+        return VERSION + " " + statusCode + " " + message + "\r\n";
+    }
 }

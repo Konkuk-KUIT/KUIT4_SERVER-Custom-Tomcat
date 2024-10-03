@@ -48,9 +48,10 @@ public class HttpRequestStartLine {
         return version;
     }
 
-
     // url에 연달아서 ?를 통해 표현되는 queryString을 parsing하여 만든 맵에서 key에 매핑되어있는 value값을 얻어옴
     public String getQueryParamValue(String key) {
         return queryParamMap.get(key);
     }
+
+
 }
