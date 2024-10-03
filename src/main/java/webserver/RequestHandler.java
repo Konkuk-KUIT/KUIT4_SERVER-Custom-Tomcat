@@ -15,7 +15,7 @@ import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class RequestHandler implements Runnable{
+public class RequestHandler implements Runnable {
     Socket connection;
     private static final Logger log = Logger.getLogger(RequestHandler.class.getName());
     private static final String WEBAPP = "webapp";
@@ -49,16 +49,13 @@ public class RequestHandler implements Runnable{
                     Map<String, String> queryParameter = HttpRequestUtils.parseQueryParameter(queryString);
                     signUpUser(queryParameter, dos);
                     return;
-                }
-                else if (method.equals("POST")) {
-                    // todo requestContentLength method
+                } else if (method.equals("POST")) {
                     int requestContentLength = 0;
                     while (true) {
                         final String line = br.readLine();
                         if (line.isEmpty()) {
                             break;
                         }
-                        // header info
                         if (line.startsWith("Content-Length")) {
                             requestContentLength = Integer.parseInt(line.split(": ")[1]);
                         }
@@ -69,6 +66,37 @@ public class RequestHandler implements Runnable{
                     return;
                 }
             }
+
+            // 요구사항 5: 로그인 처리
+            if (path.startsWith("/user/login") && method.equals("POST")) {
+                int requestContentLength = 0;
+                while (true) {
+                    final String line = br.readLine();
+                    if (line.isEmpty()) {
+                        break;
+                    }
+                    if (line.startsWith("Content-Length")) {
+                        requestContentLength = Integer.parseInt(line.split(": ")[1]);
+                    }
+                }
+                String body = IOUtils.readData(br, requestContentLength);
+                Map<String, String> queryParameter = HttpRequestUtils.parseQueryParameter(body);
+                String userId = queryParameter.get("userId");
+                String password = queryParameter.get("password");
+
+                Repository repository = MemoryUserRepository.getInstance();
+                User user = repository.findUserById(userId);
+
+                if (user != null && user.getPassword().equals(password)) {
+                    // 로그인 성공 & 쿠키 설정
+                    response302HeaderWithCookie(dos, "/index.html", "logined=true");
+                } else {
+                    // 로그인 실패
+                    response302Header(dos, "/logined_failed.html");
+                }
+                return;
+            }
+
 
             // 기본 파일 처리 부분
             if ("/".equals(path)) {
@@ -108,6 +136,16 @@ public class RequestHandler implements Runnable{
         // 302 redirect
         response302Header(dos, "/index.html");
     }
+    private void response302HeaderWithCookie(DataOutputStream dos, String redirectUrl, String cookie) {
+        try {
+            dos.writeBytes("HTTP/1.1 302 Found \r\n");
+            dos.writeBytes("Location: " + redirectUrl + "\r\n");
+            dos.writeBytes("Set-Cookie: " + cookie + "\r\n");
+            dos.writeBytes("\r\n");
+        } catch (IOException e) {
+            log.log(Level.SEVERE, e.getMessage());
+        }
+    }
 
     private void response302Header(DataOutputStream dos, String redirectUrl) {
         try {
@@ -129,6 +167,7 @@ public class RequestHandler implements Runnable{
             log.log(Level.SEVERE, e.getMessage());
         }
     }
+
     private void response404Header(DataOutputStream dos) {
         try {
             String body = "<h1>404 Not Found</h1>";
@@ -141,6 +180,7 @@ public class RequestHandler implements Runnable{
             log.log(Level.SEVERE, e.getMessage());
         }
     }
+
     private void responseBody(DataOutputStream dos, byte[] body) {
         try {
             dos.write(body, 0, body.length);
