@@ -8,8 +8,8 @@ import static constant.HttpHeader.COOKIE;
 
 public class HttpRequestHeader {
 
-    private int requestContentLength;
-    private boolean LoginStatus;
+    private final int requestContentLength;
+    private final boolean LoginStatus;
 
     private HttpRequestHeader(int requestContentLength, boolean LoginStatus) {
         this.requestContentLength = requestContentLength;

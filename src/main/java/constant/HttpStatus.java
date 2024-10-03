@@ -1,7 +1,7 @@
 package constant;
 
 public enum HttpStatus {
-    REDIRECT("302 REDIRECT"),
+    REDIRECT("302 Found"),
     OK("200 OK");
 
     private final String status;

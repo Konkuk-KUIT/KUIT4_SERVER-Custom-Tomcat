@@ -9,6 +9,7 @@ public enum URL {
     USER_LIST("/user/userList"),
     LOGIN_FAILED("/user/login_failed.html"),
     SIGNUP("/user/signup"),
+    CSS("/css/styles.css")
     ;
 
     private final String url;
