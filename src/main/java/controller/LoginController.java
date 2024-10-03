@@ -36,7 +36,8 @@ public class LoginController implements Controller{
         }
     }
 
-    private boolean checkIdPwValid(String userId, String password){User user = repository.findUserById(userId);
+    private boolean checkIdPwValid(String userId, String password){
+        User user = repository.findUserById(userId);
         if(user != null && user.getPassword().equals(password)) return true;
         return false;
     }

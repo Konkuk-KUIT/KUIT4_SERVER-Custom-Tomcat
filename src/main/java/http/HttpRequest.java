@@ -6,17 +6,18 @@ import http.util.IOUtils;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.net.URLDecoder;
 import java.util.HashMap;
 import java.util.Map;
 
 import static enums.http.header.EntityHeader.*;
 
 public class HttpRequest {
-    private String startLine;
+    private RequestStartLine startLine;
     private Map<String, String> headerMap;
     private Map<String, String> bodyMap;
 
-    public HttpRequest(String startLine,
+    private HttpRequest(RequestStartLine startLine,
                        Map<String, String> headerMap,
                        Map<String, String> bodyMap) {
         this.startLine = startLine;
@@ -25,7 +26,8 @@ public class HttpRequest {
     }
 
     public static HttpRequest from(BufferedReader br) throws IOException {
-        String startLine = extractStartLine(br);
+        String rawStartLine = extractStartLine(br);
+        RequestStartLine startLine = makeRequestStartLine(rawStartLine);
         Map<String, String> headerMap = extractHeaderMap(br);
         Map<String, String> bodyMap = extractBodyMap(br, headerMap);
         return new HttpRequest(startLine, headerMap, bodyMap);
@@ -37,6 +39,33 @@ public class HttpRequest {
             throw new IOException(ExceptionMessage.INVALID_START_LINE.getMessage());
         }
         return startLine;
+    }
+
+    private static RequestStartLine makeRequestStartLine(String rawStartLine){
+        String httpMethod = rawStartLine.split(" ")[0];
+        String rawUrl = rawStartLine.split(" ")[1];
+        String url = extractUrl(rawUrl);
+        Map<String, String> queryMap = extractQueryParameters(rawUrl);
+        return RequestStartLine.from(httpMethod, url, queryMap);
+    }
+
+    private static String extractUrl(String rawUrl) {
+        int questionMarkIndex = rawUrl.indexOf('?');
+        String url = questionMarkIndex != -1 ? rawUrl.substring(0, questionMarkIndex) : rawUrl;
+
+        if (url.endsWith("/")) url = url.substring(0, url.length() - 1);
+        if (!url.startsWith("/")) url = "/" + url;
+
+        return url;
+    }
+
+    private static Map<String, String> extractQueryParameters(String rawUrl) {
+        int questionMarkIndex = rawUrl.indexOf('?');
+        if (questionMarkIndex == -1) {
+            return new HashMap<>();
+        }
+        String queryString = rawUrl.substring(questionMarkIndex + 1);
+        return HttpRequestUtils.parseQueryParameter(queryString);
     }
 
     private static Map<String, String> extractHeaderMap(BufferedReader br) throws IOException {
@@ -57,11 +86,12 @@ public class HttpRequest {
         String rawContentLength = headerMap.get(CONTENTLENGTH.getValue());
         if (rawContentLength != null) contentLength = Integer.parseInt(rawContentLength);
 
-        String rawMessageBody = "";
+        String decodedMessageBody = "";
         if (contentLength > 0) {
-            rawMessageBody = IOUtils.readData(br, contentLength);
+            String rawMessageBody = IOUtils.readData(br, contentLength);
+            decodedMessageBody = URLDecoder.decode(rawMessageBody, "UTF-8");
         }
-        return buildBodyMapFromMessageBody(rawMessageBody);
+        return buildBodyMapFromMessageBody(decodedMessageBody);
     }
 
     private static Map<String, String> buildBodyMapFromMessageBody(String rawMessageBody) {
@@ -70,36 +100,15 @@ public class HttpRequest {
     }
 
     public String getHttpMethod() {
-        return startLine.split(" ")[0];
+        return startLine.getHttpMethod();
     }
 
     public String getUrl() {
-        String rawUrl = startLine.split(" ")[1];
-        return extractUrl(rawUrl);
+        return startLine.getUrl();
     }
 
     public Map<String, String> getQueryMap() {
-        String rawUrl = startLine.split(" ")[1];
-        return extractQueryParameters(rawUrl);
-    }
-
-    private String extractUrl(String rawUrl) {
-        int questionMarkIndex = rawUrl.indexOf('?');
-        String url = questionMarkIndex != -1 ? rawUrl.substring(0, questionMarkIndex) : rawUrl;
-
-        if (url.endsWith("/")) url = url.substring(0, url.length() - 1);
-        if (!url.startsWith("/")) url = "/" + url;
-
-        return url;
-    }
-
-    private Map<String, String> extractQueryParameters(String rawUrl) {
-        int questionMarkIndex = rawUrl.indexOf('?');
-        if (questionMarkIndex == -1) {
-            return new HashMap<>();
-        }
-        String queryString = rawUrl.substring(questionMarkIndex + 1);
-        return HttpRequestUtils.parseQueryParameter(queryString);
+        return startLine.getQueryMap();
     }
 
     public Map<String, String> getHeaderMap() {

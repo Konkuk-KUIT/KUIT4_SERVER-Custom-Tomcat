@@ -11,6 +11,7 @@ import java.util.logging.Logger;
 
 import static enums.extension.FileExtension.CSS;
 import static enums.extension.FileExtension.HTML;
+import static enums.http.HttpStatus.*;
 import static enums.http.header.EntityHeader.CONTENTLENGTH;
 import static enums.http.header.EntityHeader.CONTENTTYPE;
 import static enums.http.header.ResponseHeader.LOCATION;
@@ -19,57 +20,69 @@ import static enums.http.header.ResponseHeader.SETCOOKIE;
 public class HttpResponse {
     private static final Logger log = Logger.getLogger(HttpResponse.class.getName());
     private DataOutputStream dos;
+    private StringBuilder responseHeaderSB;
 
     public HttpResponse(DataOutputStream dos) {
         this.dos = dos;
+        this.responseHeaderSB = new StringBuilder();
     }
 
     public void forward(String path) throws IOException {
         String relativePath = "webapp"+path;
         byte[] body = Files.readAllBytes(Paths.get(relativePath));
 
-        if(path.endsWith(HTML.addFrontPoint())){
-            sendHeader(dos, HTML.getValue(), body.length);
-        }
-        if(path.endsWith(CSS.addFrontPoint())){
-            sendHeader(dos, CSS.getValue(), body.length);
-        }
-        sendBody(dos, body);
+        setStatusLine(HttpStatus.OK);
+
+        if(path.endsWith(HTML.addFrontPoint())) addContentInfo(HTML.getValue(), body.length);
+        if(path.endsWith(CSS.addFrontPoint())) addContentInfo(CSS.getValue(), body.length);
+
+        sendHeader();
+        sendBody(body);
     }
 
     public void redirect(String location){
-        try {
-            dos.writeBytes(HttpStatus.REDIRECT.getValue());
-            dos.writeBytes(LOCATION.toResponseString() + location + "\r\n");
-            dos.writeBytes("\r\n");
-        } catch (IOException e) {
-            log.log(Level.SEVERE, e.getMessage());
-        }
+        setStatusLine(REDIRECT);
+        addLocation(location);
+        sendHeader();
     }
 
     public void redirectSettingCookie(String location){
-        try {
-            dos.writeBytes(HttpStatus.REDIRECT.getValue());
-            dos.writeBytes(SETCOOKIE.toResponseString()+ "logined=true" + "\r\n");
-            dos.writeBytes(LOCATION.toResponseString() + location + "\r\n");
-            dos.writeBytes("\r\n");
-        } catch (IOException e) {
+        setStatusLine(REDIRECT);
+        addSetCookie();
+        addLocation(location);
+        sendHeader();
+    }
+
+    private void setStatusLine(HttpStatus httpStatus){
+        responseHeaderSB.append(httpStatus.getValue());
+    }
+
+    private void addContentInfo(String extension, int lengthOfBodyContent){
+        responseHeaderSB.append(CONTENTTYPE.toResponseString() + "text/" + extension + ";charset=utf-8\r\n");
+        responseHeaderSB.append(CONTENTLENGTH.toResponseString() + lengthOfBodyContent + "\r\n");
+    }
+
+    private void addLocation(String location){
+        responseHeaderSB.append(LOCATION.toResponseString() + location + "\r\n");
+    }
+
+    private void addSetCookie(){
+        responseHeaderSB.append(SETCOOKIE.toResponseString()+ "logined=true" + "\r\n");
+    }
+
+    private void sendHeader() {
+        responseHeaderSB.append("\r\n");
+        try{
+            dos.writeBytes(responseHeaderSB.toString());
+            responseHeaderSB.setLength(0);
+            dos.flush();
+        }
+        catch (IOException e) {
             log.log(Level.SEVERE, e.getMessage());
         }
     }
 
-    private void sendHeader(DataOutputStream dos, String extension, int lengthOfBodyContent) {
-        try {
-            dos.writeBytes(HttpStatus.OK.getValue());
-            dos.writeBytes(CONTENTTYPE.toResponseString() + "text/" + extension + ";charset=utf-8\r\n");
-            dos.writeBytes(CONTENTLENGTH.toResponseString() + lengthOfBodyContent + "\r\n");
-            dos.writeBytes("\r\n");
-        } catch (IOException e) {
-            log.log(Level.SEVERE, e.getMessage());
-        }
-    }
-
-    private void sendBody(DataOutputStream dos, byte[] body) {
+    private void sendBody(byte[] body) {
         try {
             dos.write(body, 0, body.length);
             dos.flush();

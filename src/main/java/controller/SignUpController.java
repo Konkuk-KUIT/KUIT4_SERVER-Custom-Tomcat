@@ -25,7 +25,6 @@ public class SignUpController implements Controller{
             repository.addUser(user);
         }
 
-        // todo : application/x-www-form-urlencoded로 전달되는 값 decode??? >> URLDecoder
         if (httpRequest.getHttpMethod().equals(POST.getValue())) {
             Map<String, String> bodyMap = httpRequest.getBodyMap();
             User user = makeUserFromMap(bodyMap);
