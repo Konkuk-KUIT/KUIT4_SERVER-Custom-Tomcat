@@ -1,6 +1,7 @@
 package mapper;
 
 import controller.*;
+import db.MemoryUserRepository;
 import http.request.HttpRequest;
 import http.response.HttpResponse;
 
@@ -22,8 +23,8 @@ public class RequestMapper {
         this.controllers = new HashMap<>();
 
         controllers.put(ROOT.getUrl(), new HomeController());
-        controllers.put(USER_SIGNUP.getUrl(), new SignUpController());
-        controllers.put(USER_LOGIN.getUrl(), new LoginController());
+        controllers.put(USER_SIGNUP.getUrl(), new SignUpController(MemoryUserRepository.getInstance()));
+        controllers.put(USER_LOGIN.getUrl(), new LoginController(MemoryUserRepository.getInstance()));
         controllers.put(USER_USERLIST.getUrl(), new ListController());
     }
 
@@ -31,6 +32,7 @@ public class RequestMapper {
         Controller controller = controllers.get(request.getUrl());
         Controller forwardController = new ForwardController();
 
+        // .css 확장자로 들어오는 styles.css 파일을 인식해주기 위해 .css에 대한 코드도 추가
         if(request.getMethod().equals("GET") && (request.getUrl().endsWith(".html") || request.getUrl().endsWith(".css"))){
             forwardController.execute(request, response);
         } else{

@@ -15,9 +15,6 @@ import java.util.logging.Logger;
 public class RequestHandler implements Runnable {
     Socket connection;
     private static final Logger log = Logger.getLogger(RequestHandler.class.getName());
-    Repository repository = MemoryUserRepository.getInstance();
-    private Controller controller = new ForwardController();
-
     public RequestHandler(Socket connection) {
         this.connection = connection;
     }

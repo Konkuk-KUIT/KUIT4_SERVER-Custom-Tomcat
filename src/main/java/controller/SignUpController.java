@@ -1,6 +1,7 @@
 package controller;
 
 import db.MemoryUserRepository;
+import db.Repository;
 import http.request.HttpRequest;
 import http.response.HttpResponse;
 import model.User;
@@ -13,7 +14,11 @@ import static constant.Url.INDEX_HTML;
 
 public class SignUpController implements Controller {
 
-    MemoryUserRepository repository = MemoryUserRepository.getInstance();
+    Repository repository;
+
+    public SignUpController(Repository repository) {
+        this.repository = repository;
+    }
 
     @Override
     public void execute(HttpRequest request, HttpResponse response) throws IOException {
