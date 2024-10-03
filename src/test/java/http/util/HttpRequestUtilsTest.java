@@ -1,11 +1,10 @@
 package http.util;
 
-import http.HttpRequest;
+import http.request.HttpRequest;
+import http.response.HttpResponse;
 import org.junit.jupiter.api.Test;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Map;
@@ -38,13 +37,30 @@ class HttpRequestUtilsTest {
     }
 
     @Test
-    void HttpRequest_버퍼리더확인() throws IOException {
+    void HttpRequestTest() throws IOException {
 
         String testDirectory = "./src/test/resources/";
 
-        HttpRequest httpRequest = HttpRequest.from(bufferedReaderFromFile(testDirectory + "test.txt"));
+        HttpRequest httpRequest = HttpRequest.from(bufferedReaderFromFile(testDirectory + "input.txt"));
 
         assertEquals("/user/create", httpRequest.getUrl());
+
+    }
+
+    private DataOutputStream outputStreamToFile(String path) throws IOException {
+        OutputStream outputStream = Files.newOutputStream(Paths.get(path));
+        return new DataOutputStream(outputStream);
+    }
+
+
+    @Test
+    void HttpResponseTest() throws IOException {
+
+        String testDirectory = "./src/test/resources/";
+
+        HttpResponse httpResponse = new HttpResponse(outputStreamToFile(testDirectory+"output.txt"));
+
+        httpResponse.forward("/index.html");
 
     }
 

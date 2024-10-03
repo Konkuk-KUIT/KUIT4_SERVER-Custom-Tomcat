@@ -4,19 +4,19 @@ import http.util.HttpRequestUtils;
 
 import java.util.Map;
 
-public class RequestBody {
+public class HttpRequestBody {
 
     private final Map<String, String> queryParams;
 
-    private RequestBody(Map<String, String> queryParams) {
+    private HttpRequestBody(Map<String, String> queryParams) {
         this.queryParams = queryParams;
     }
 
-    public static RequestBody CreateRequestBody(String requestBody){
+    public static HttpRequestBody CreateRequestBody(String requestBody){
 
         if (requestBody != null) {
             Map<String, String> queryParams = HttpRequestUtils.parseQueryParameter(requestBody);
-            return new RequestBody(queryParams);
+            return new HttpRequestBody(queryParams);
         }
         return null;
     }

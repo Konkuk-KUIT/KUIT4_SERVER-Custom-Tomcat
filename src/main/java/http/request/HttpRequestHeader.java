@@ -3,17 +3,17 @@ package http.request;
 import java.io.BufferedReader;
 import java.io.IOException;
 
-public class HttpHeader {
+public class HttpRequestHeader {
 
     private final int contentLength;
     private final String cookie;
 
-    private HttpHeader(int contentLength, String cookie) {
+    private HttpRequestHeader(int contentLength, String cookie) {
         this.contentLength = contentLength;
         this.cookie = cookie;
     }
 
-    public static HttpHeader createHttpHeader(BufferedReader br) throws IOException {
+    public static HttpRequestHeader createHttpHeader(BufferedReader br) throws IOException {
 
         int contentLength = 0;
         String cookie = "";
@@ -30,7 +30,7 @@ public class HttpHeader {
                 cookie = line.split(": ")[1].trim(); // 쿠키 값 읽고 공백 제거
             }
         }
-        return new HttpHeader(contentLength,cookie);
+        return new HttpRequestHeader(contentLength,cookie);
     }
 
     public int getContentLength() {
