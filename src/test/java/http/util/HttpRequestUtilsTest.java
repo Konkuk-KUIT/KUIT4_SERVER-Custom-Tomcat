@@ -1,24 +1,26 @@
 package http.util;
 
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.*;
+
 
 class HttpRequestUtilsTest {
 
     @Test
     void parseQuery() {
         Map<String, String> queryParameter = HttpRequestUtils.parseQueryParameter("userId=1");
-        assertEquals("1",queryParameter.get("userId"));
+        assertThat(queryParameter.get("userId")).isEqualTo("1");
     }
 
     @Test
     void parseQueryMore() {
         Map<String, String> queryParameter = HttpRequestUtils.parseQueryParameter("userId=1&password=1");
-        assertEquals("1",queryParameter.get("userId"));
-        assertEquals("1",queryParameter.get("password"));
+        assertThat(queryParameter.get("userId")).isEqualTo("1");
+        assertThat(queryParameter.get("password")).isEqualTo("1");
     }
 
     @Test

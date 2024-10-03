@@ -9,7 +9,9 @@ import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static http.constants.HttpMethod.GET;
+import static org.assertj.core.api.Assertions.assertThat;
+
 
 class HttpHeadersTest {
     private final String testDirectory = "./src/test/resources/";
@@ -19,10 +21,9 @@ class HttpHeadersTest {
     void header() throws IOException {
         HttpHeaders httpHeaders = HttpHeaders.from(bufferedReaderFromFile(testDirectory + headerPath));
 
-        assertEquals("keep-alive",httpHeaders.get(HttpHeader.CONNECTION));
-        assertEquals("localhost",httpHeaders.get(HttpHeader.HOST));
-        assertEquals("46",httpHeaders.get(HttpHeader.CONTENT_LENGTH));
-
+        assertThat(httpHeaders.get(HttpHeader.CONNECTION)).isEqualTo("keep-alive");
+        assertThat(httpHeaders.get(HttpHeader.HOST)).isEqualTo("localhost");
+        assertThat(httpHeaders.get(HttpHeader.CONTENT_LENGTH)).isEqualTo("46");
     }
 
     private BufferedReader bufferedReaderFromFile(String path) throws IOException {

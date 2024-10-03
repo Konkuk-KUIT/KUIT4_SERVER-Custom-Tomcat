@@ -10,7 +10,8 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
+
 
 class HttpRequestTest {
     private final String testDirectory = "./src/test/resources/";
@@ -21,22 +22,23 @@ class HttpRequestTest {
     void HTTP_GET_Query() throws IOException {
         HttpRequest httpRequest = HttpRequest.from(bufferedReaderFromFile(testDirectory + getPath));
 
-        assertEquals("/user/create", httpRequest.getUrl());
-        assertEquals(HttpMethod.GET, httpRequest.getMethod());
-        assertEquals("jw", httpRequest.getQueryParameter("userId"));
-        assertEquals("password", httpRequest.getQueryParameter("password"));
-        assertEquals("jungwoo", httpRequest.getQueryParameter("name"));
+        assertThat(httpRequest.getUrl()).isEqualTo("/user/create");
+        assertThat(httpRequest.getMethod()).isEqualTo(HttpMethod.GET);
+        assertThat(httpRequest.getQueryParameter("userId")).isEqualTo("hj");
+        assertThat(httpRequest.getQueryParameter("password")).isEqualTo("password");
+        assertThat(httpRequest.getQueryParameter("name")).isEqualTo("hyeongju");
     }
 
     @Test
     void HTTP_POST_Query() throws IOException {
         HttpRequest httpRequest = HttpRequest.from(bufferedReaderFromFile(testDirectory + postPath));
         Map<String, String> queryParametersFromBody = httpRequest.getQueryParametersFromBody();
-        assertEquals("jw", queryParametersFromBody.get("userId"));
-        assertEquals("password", queryParametersFromBody.get("password"));
-        assertEquals("jungwoo", queryParametersFromBody.get("name"));
-        assertEquals("/user/create", httpRequest.getUrl());
-        assertEquals(HttpMethod.POST, httpRequest.getMethod());
+
+        assertThat(queryParametersFromBody.get("userId")).isEqualTo("hj");
+        assertThat(queryParametersFromBody.get("password")).isEqualTo("password");
+        assertThat(queryParametersFromBody.get("name")).isEqualTo("hyeongju");
+        assertThat(httpRequest.getUrl()).isEqualTo("/user/create");
+        assertThat(httpRequest.getMethod()).isEqualTo(HttpMethod.POST);
     }
 
     private BufferedReader bufferedReaderFromFile(String path) throws IOException {
