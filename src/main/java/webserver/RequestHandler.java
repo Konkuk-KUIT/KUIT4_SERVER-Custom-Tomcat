@@ -3,6 +3,7 @@ package webserver;
 import db.MemoryUserRepository;
 import db.Repository;
 import http.util.HttpRequestUtils;
+import http.util.IOUtils;
 import model.User;
 
 import java.io.*;
@@ -10,6 +11,7 @@ import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Map;
+import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -40,29 +42,30 @@ public class RequestHandler implements Runnable{
             String method = tokens[0]; // "GET", "POST"
             String path = tokens[1];   // "/index.html", "/user/signup" ..
 
-            // 요구사항 2 GET
+            // 요구사항 2 & 3: GET or POST 회원가입
             if (path.startsWith("/user/signup")) {
-                if (path.contains("?")) {
-                    log.log(Level.INFO, "path: " + path);
-
+                if (method.equals("GET") && path.contains("?")) {
                     String queryString = path.substring(path.indexOf("?") + 1);
                     Map<String, String> queryParameter = HttpRequestUtils.parseQueryParameter(queryString);
-
-                    queryParameter.forEach((key, value) -> log.log(Level.INFO, key + " : " + value));
-
-                    String userId = queryParameter.get("userId");
-                    String password = queryParameter.get("password");
-                    String name = queryParameter.get("name");
-                    String email = queryParameter.get("email");
-
-                    User user = new User(userId, password, name, email);
-
-                    Repository repository = MemoryUserRepository.getInstance();
-                    repository.addUser(user);
-                    log.log(Level.INFO, "user: " + repository.findUserById(userId));
-
-                    // 302 redirect
-                    response302Header(dos, "/index.html");
+                    signUpUser(queryParameter, dos);
+                    return;
+                }
+                else if (method.equals("POST")) {
+                    // todo requestContentLength method
+                    int requestContentLength = 0;
+                    while (true) {
+                        final String line = br.readLine();
+                        if (line.isEmpty()) {
+                            break;
+                        }
+                        // header info
+                        if (line.startsWith("Content-Length")) {
+                            requestContentLength = Integer.parseInt(line.split(": ")[1]);
+                        }
+                    }
+                    String body = IOUtils.readData(br, requestContentLength);
+                    Map<String, String> queryParameter = HttpRequestUtils.parseQueryParameter(body);
+                    signUpUser(queryParameter, dos);
                     return;
                 }
             }
@@ -85,6 +88,25 @@ public class RequestHandler implements Runnable{
         } catch (IOException e) {
             log.log(Level.SEVERE, e.getMessage());
         }
+    }
+
+    private void signUpUser(Map<String, String> queryParameter, DataOutputStream dos) {
+        queryParameter.forEach((key, value) -> log.log(Level.INFO, key + " : " + value));
+
+        String userId = queryParameter.get("userId");
+        String password = queryParameter.get("password");
+        String name = queryParameter.get("name");
+        String email = queryParameter.get("email");
+
+        User user = new User(userId, password, name, email);
+        log.log(Level.INFO, "user: " + user);
+
+        Repository repository = MemoryUserRepository.getInstance();
+        repository.addUser(user);
+        log.log(Level.INFO, "user: " + repository.findUserById(userId));
+
+        // 302 redirect
+        response302Header(dos, "/index.html");
     }
 
     private void response302Header(DataOutputStream dos, String redirectUrl) {
@@ -127,5 +149,4 @@ public class RequestHandler implements Runnable{
             log.log(Level.SEVERE, e.getMessage());
         }
     }
-
 }
