@@ -1,7 +1,5 @@
 package http;
 
-import java.io.BufferedReader;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -11,38 +9,16 @@ public class HttpRequest {
     private String version;
     private Map<String, String> headers = new HashMap<>();
     private String body;
+    private String queryString;
 
-    // 정적 팩토리 메서드: BufferedReader로부터 HttpRequest 생성
-    public static HttpRequest from(BufferedReader br) throws IOException {
-        HttpRequest request = new HttpRequest();
-
-        // 1. Start Line 분석 (Method, Path, Version)
-        String startLine = br.readLine();
-        if (startLine != null) {
-            String[] startLineParts = startLine.split(" ");
-            request.method = startLineParts[0];  // GET, POST 등
-            request.path = startLineParts[1];    // /index.html
-            request.version = startLineParts[2]; // HTTP/1.1
-        }
-
-        // 2. Header 분석
-        String headerLine;
-        while (!(headerLine = br.readLine()).isEmpty()) {
-            String[] headerParts = headerLine.split(": ");
-            if (headerParts.length == 2) {
-                request.headers.put(headerParts[0], headerParts[1]);
-            }
-        }
-
-        // 3. Body 읽기 (Content-Length가 있는 경우에만)
-        if (request.headers.containsKey("Content-Length")) {
-            int contentLength = Integer.parseInt(request.headers.get("Content-Length"));
-            char[] bodyChars = new char[contentLength];
-            br.read(bodyChars, 0, contentLength);
-            request.body = new String(bodyChars);
-        }
-
-        return request;
+    // 생성자: 필요한 필드를 설정
+    public HttpRequest(String method, String path, String version, Map<String, String> headers, String body, String queryString) {
+        this.method = method;
+        this.path = path;
+        this.version = version;
+        this.headers = headers;
+        this.body = body;
+        this.queryString = queryString;
     }
 
     // Getter 메서드들
@@ -64,5 +40,9 @@ public class HttpRequest {
 
     public String getBody() {
         return body;
+    }
+
+    public String getQueryString() {
+        return queryString;
     }
 }
