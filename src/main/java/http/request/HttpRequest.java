@@ -31,7 +31,7 @@ public class HttpRequest {
         return httpRequestStartLine.getUrl();
     }
 
-    public String getMethod() {
+    public HttpMethod getMethod() {
         return httpRequestStartLine.getMethod();
     }
 

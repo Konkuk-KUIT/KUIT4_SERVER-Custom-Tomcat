@@ -2,12 +2,12 @@ package http.request;
 
 public class HttpRequestStartLine {
 
-    private final String method;
+    private final HttpMethod method;
     private final String url;
     private final String queryString;
 
 
-    private HttpRequestStartLine(String method, String url, String queryString) {
+    private HttpRequestStartLine(HttpMethod method, String url, String queryString) {
         this.method = method;
         this.url = url;
         this.queryString = queryString;
@@ -20,7 +20,7 @@ public class HttpRequestStartLine {
         }
         else{
             String[] requestLines = requestLine.split(" ");
-            String method = requestLines[0]; // 요청 방식 (GET, POST 등)
+            HttpMethod method = HttpMethod.fromString(requestLines[0]); // 요청 방식 (GET, POST 등)
             String requestedFile = requestLines[1]; // 요청된 파일 (URL)
 
             // URL과 쿼리 스트링을 분리
@@ -37,7 +37,7 @@ public class HttpRequestStartLine {
         return url;
     }
 
-    public String getMethod() {
+    public HttpMethod getMethod() {
         return method;
     }
 
