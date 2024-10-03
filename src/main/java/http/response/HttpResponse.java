@@ -27,17 +27,6 @@ public class HttpResponse {
         String filePath = WEBAPP_PATH.getPath() + Path;
         File file = new File(filePath);
 
-//        String httpResponseStartLine;
-//        // 파일 존재 여부에 따른 HTTP 응답 시작 줄 설정
-//        if (file.exists())
-//            httpResponseStartLine = HttpResponseStartLine.createHttpResponseStartLine(OK).getHttpResponseStartLine();
-//        else
-//            httpResponseStartLine = HttpResponseStartLine.createHttpResponseStartLine(NOT_FOUND).getHttpResponseStartLine();
-//
-//        // HTTP 응답 헤더와 본문 생성
-//        String httpResponseHeader = HttpResponseHeader.createBasicHttpResponseHeader(file).getHttpResponseHeader();
-//        byte[] httpResponseBody = HttpResponseBody.createHttpResponseBody(file).getBody();
-
         // 파일 존재 여부에 따른 HTTP 응답 시작 줄 설정
         if (file.exists()) {
             responseStartLine = HttpResponseStartLine.createHttpResponseStartLine(OK);
@@ -52,8 +41,6 @@ public class HttpResponse {
 
     public void redirect(String Path) throws IOException {
 
-//        String httpResponseStartLine = HttpResponseStartLine.createHttpResponseStartLine(FOUND).getHttpResponseStartLine();
-//        String httpResponseHeader = HttpResponseHeader.createRedirectHttpResponseHeader(Path).getHttpResponseHeader();
         responseStartLine = HttpResponseStartLine.createHttpResponseStartLine(FOUND);
         httpResponseHeader = HttpResponseHeader.createRedirectHttpResponseHeader(Path);
         httpResponseBody = null;
@@ -62,9 +49,6 @@ public class HttpResponse {
     }
 
     public void redirectWithCookie(String Path) throws IOException {
-
-//        String httpResponseStartLine = HttpResponseStartLine.createHttpResponseStartLine(FOUND).getHttpResponseStartLine();
-//        String httpResponseHeader = HttpResponseHeader.createCookieHttpResponseHeader(Path).getHttpResponseHeader();
 
         responseStartLine = HttpResponseStartLine.createHttpResponseStartLine(FOUND);
         httpResponseHeader = HttpResponseHeader.createCookieHttpResponseHeader(Path);
