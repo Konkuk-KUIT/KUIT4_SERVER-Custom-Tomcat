@@ -23,9 +23,6 @@ public class MemoryUserRepository implements Repository{
 
     public void addUser(User user) {
         users.put(user.getUserId(), user);
-        System.out.println("<User 추가>");
-        System.out.println(user.getUserId() + " " + user.getPassword() + " " + user.getName() + " " + user.getEmail());
-        System.out.println(users.size());
     }
 
     public User findUserById(String userId) {
