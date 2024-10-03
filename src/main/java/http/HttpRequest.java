@@ -27,7 +27,7 @@ public class HttpRequest {
 
     public static HttpRequest from(BufferedReader br) throws IOException {
         String rawStartLine = extractStartLine(br);
-        RequestStartLine startLine = makeRequestStartLine(rawStartLine);
+        RequestStartLine startLine = RequestStartLine.from(rawStartLine);
         Map<String, String> headerMap = extractHeaderMap(br);
         Map<String, String> bodyMap = extractBodyMap(br, headerMap);
         return new HttpRequest(startLine, headerMap, bodyMap);
@@ -39,33 +39,6 @@ public class HttpRequest {
             throw new IOException(ExceptionMessage.INVALID_START_LINE.getMessage());
         }
         return startLine;
-    }
-
-    private static RequestStartLine makeRequestStartLine(String rawStartLine){
-        String httpMethod = rawStartLine.split(" ")[0];
-        String rawUrl = rawStartLine.split(" ")[1];
-        String url = extractUrl(rawUrl);
-        Map<String, String> queryMap = extractQueryParameters(rawUrl);
-        return RequestStartLine.from(httpMethod, url, queryMap);
-    }
-
-    private static String extractUrl(String rawUrl) {
-        int questionMarkIndex = rawUrl.indexOf('?');
-        String url = questionMarkIndex != -1 ? rawUrl.substring(0, questionMarkIndex) : rawUrl;
-
-        if (url.endsWith("/")) url = url.substring(0, url.length() - 1);
-        if (!url.startsWith("/")) url = "/" + url;
-
-        return url;
-    }
-
-    private static Map<String, String> extractQueryParameters(String rawUrl) {
-        int questionMarkIndex = rawUrl.indexOf('?');
-        if (questionMarkIndex == -1) {
-            return new HashMap<>();
-        }
-        String queryString = rawUrl.substring(questionMarkIndex + 1);
-        return HttpRequestUtils.parseQueryParameter(queryString);
     }
 
     private static Map<String, String> extractHeaderMap(BufferedReader br) throws IOException {
