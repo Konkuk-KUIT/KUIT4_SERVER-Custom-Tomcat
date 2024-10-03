@@ -1,12 +1,11 @@
 package webserver;
 
-import controller.*;
-import db.Repository;
 import http.request.HttpRequest;
 import http.response.HttpResponse;
 
 import java.io.*;
 import java.net.Socket;
+import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -26,14 +25,14 @@ public class RequestHandler implements Runnable{
             DataOutputStream dos = new DataOutputStream(out);
 
             HttpRequest httpRequest = HttpRequest.from(br);
-            log.log(Level.INFO, "HTTP request url : " + httpRequest.getUrl());
             HttpResponse httpResponse = new HttpResponse(dos);
 
             RequestMapper requestMapper = new RequestMapper(httpRequest,httpResponse);
             requestMapper.proceed();
 
-        } catch (IOException e) {
-            log.log(Level.SEVERE,e.getMessage());
+        } catch (Exception e) {
+            log.log(Level.SEVERE, e.getMessage());
+            System.out.println(Arrays.toString(e.getStackTrace()));
         }
     }
 }
