@@ -9,6 +9,9 @@ import model.User;
 import java.io.IOException;
 import java.util.Map;
 
+import static http.request.Url.INDEX_HTML;
+import static model.UserQueryKey.*;
+
 public class SignUpController implements Controller{
 
     MemoryUserRepository memoryUserRepository = MemoryUserRepository.getInstance();
@@ -29,8 +32,9 @@ public class SignUpController implements Controller{
             query = httpRequest.getQueryParams();
         }
 
-        User user = new User(query.get("userId"),query.get("password"),query.get("name"),query.get("email"));
+        User user = new User(query.get(USERID.getKey()),query.get(PASSWORD.getKey())
+                ,query.get(NAME.getKey()),query.get(EMAIL.getKey()));
         memoryUserRepository.addUser(user);
-        httpResponse.redirect("/index.html"); //요구사항 4 리다이렉트 적용
+        httpResponse.redirect(INDEX_HTML.getPath());
     }
 }

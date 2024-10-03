@@ -5,7 +5,8 @@ public enum HttpHeaders {
     COOKIE("Cookie"),
     SET_COOKIE("Set-Cookie"),
     LOCATION("Location"),
-    CONTENT_TYPE("Content-Type");
+    CONTENT_TYPE("Content-Type"),
+    LOGINED_TRUE("logined=true");
 
     private final String header;
 

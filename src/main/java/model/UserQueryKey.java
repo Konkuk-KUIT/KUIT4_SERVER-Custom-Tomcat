@@ -1,7 +1,8 @@
 package model;
 
 public enum UserQueryKey {
-    USER_ID("userId"),
+
+    USERID("userId"),
     PASSWORD("password"),
     NAME("name"),
     EMAIL("email");

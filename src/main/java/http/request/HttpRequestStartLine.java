@@ -20,7 +20,7 @@ public class HttpRequestStartLine {
         }
         else{
             String[] requestLines = requestLine.split(" ");
-            HttpMethod method = HttpMethod.fromString(requestLines[0]); // 요청 방식 (GET, POST 등)
+            HttpMethod method = HttpMethod.fromString(requestLines[0]); // 요청 방식
             String requestedFile = requestLines[1]; // 요청된 파일 (URL)
 
             // URL과 쿼리 스트링을 분리

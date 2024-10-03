@@ -16,7 +16,7 @@ public class HttpResponseBody {
         return new HttpResponseBody(body);
     }
 
-    public byte[] getbody(){
+    public byte[] getBody(){
         return body;
     }
 

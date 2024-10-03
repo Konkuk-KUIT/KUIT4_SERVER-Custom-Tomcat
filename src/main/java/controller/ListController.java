@@ -9,15 +9,21 @@ import model.User;
 import java.io.IOException;
 import java.util.Map;
 
+import static http.HttpHeaders.LOGINED_TRUE;
+import static http.request.Url.USER_LIST_HTML;
+import static http.request.Url.USER_LOGIN_HTML;
+
 public class ListController implements Controller{
     @Override
-    public void execute(HttpRequest httpRequest, HttpResponse httpResponse) throws IOException {
-        String cookie = httpRequest.getCookie(); // 요청된 파일
-        if(cookie.contains("logined=true")){
-            httpResponse.redirect("/user/list.html");
+    public void execute(HttpRequest httpRequest, HttpResponse httpResponse) throws IOException{
+
+        //요구사항 6: 사용자 목록 출력
+        String cookie = httpRequest.getCookie();
+        if(cookie.contains(LOGINED_TRUE.getHeader())){
+            httpResponse.redirect(USER_LIST_HTML.getPath());
         }
         else{
-            httpResponse.redirect("/user/login.html");
+            httpResponse.redirect(USER_LOGIN_HTML.getPath());
         }
     }
 }

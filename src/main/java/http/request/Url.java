@@ -1,4 +1,4 @@
-package webserver;
+package http.request;
 
 public enum Url {
     WEBAPP_PATH("./webapp"),
@@ -9,7 +9,7 @@ public enum Url {
     USER_LIST("/user/userList"),
     USER_LOGIN_FAILED("/user/login_failed.html"),
     USER_LIST_HTML("/user/list.html"),
-    ROOT(("/"));
+    ROOT("/");
 
     private final String path;
 

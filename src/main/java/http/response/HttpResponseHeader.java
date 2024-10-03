@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
+import static http.HttpHeaders.*;
+
 public class HttpResponseHeader {
 
     private final int contentLength;
@@ -22,7 +24,7 @@ public class HttpResponseHeader {
 
     public static HttpResponseHeader createBasicHttpResponseHeader(File file) throws IOException {
 
-        // 실제 파일 내용을 읽어 바이트 배열로 변환
+        // 파일 내용을 읽어 바이트 배열로 변환
         byte[] body = Files.readAllBytes(file.toPath());
         int contentLength = body.length; // 파일 본문의 바이트 길이
 
@@ -43,45 +45,40 @@ public class HttpResponseHeader {
 
     public static HttpResponseHeader createCookieHttpResponseHeader(String path){
 
-        return new HttpResponseHeader(0,"", path, "logined=true");
+        return new HttpResponseHeader(0,"", path, LOGINED_TRUE.getHeader());
     }
 
     public String getHttpResponseHeader() {
         StringBuilder headerBuilder = new StringBuilder();
 
-        // Content-Type
         if (!contentType.isEmpty()) {
-            headerBuilder.append("Content-Type: ")
+            headerBuilder.append(CONTENT_TYPE.getHeader())
+                    .append(": ")
                     .append(contentType)
                     .append("\r\n");
         }
-
-        // Content-Length
         if (contentLength!=0) {
-            headerBuilder.append("Content-Length: ")
+            headerBuilder.append(CONTENT_LENGTH.getHeader())
+                    .append(": ")
                     .append(contentLength)
                     .append("\r\n");
         }
-
-        // Location (리다이렉션이 필요한 경우)
         if (!location.isEmpty()) {
-            headerBuilder.append("Location: ")
+            headerBuilder.append(LOCATION.getHeader())
+                    .append(": ")
                     .append(location)
                     .append("\r\n");
         }
-
-        // Set-Cookie (필요 시)
         if (!setCookie.isEmpty()) {
-            headerBuilder.append("Set-Cookie: ")
+            headerBuilder.append(SET_COOKIE.getHeader())
+                    .append(": ")
                     .append(setCookie)
                     .append("\r\n");
         }
 
-        // 헤더 끝에 빈 줄 추가
         headerBuilder.append("\r\n");
 
         return headerBuilder.toString();
     }
-
 
 }

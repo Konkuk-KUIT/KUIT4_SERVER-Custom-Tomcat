@@ -3,6 +3,9 @@ package http.request;
 import java.io.BufferedReader;
 import java.io.IOException;
 
+import static http.HttpHeaders.CONTENT_LENGTH;
+import static http.HttpHeaders.COOKIE;
+
 public class HttpRequestHeader {
 
     private final int contentLength;
@@ -23,10 +26,10 @@ public class HttpRequestHeader {
             if (line.isEmpty()) {
                 break;
             }
-            if (line.startsWith("Content-Length")) {
+            if (line.startsWith(CONTENT_LENGTH.getHeader())) {
                 contentLength = Integer.parseInt(line.split(": ")[1]);
             }
-            if (line.startsWith("Cookie")) {
+            if (line.startsWith(COOKIE.getHeader())) {
                 cookie = line.split(": ")[1].trim(); // 쿠키 값 읽고 공백 제거
             }
         }

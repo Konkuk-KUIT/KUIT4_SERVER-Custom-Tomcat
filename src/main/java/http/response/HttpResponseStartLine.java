@@ -16,6 +16,6 @@ public class HttpResponseStartLine {
     }
 
     public String getHttpResponseStartLine() {
-        return VERSION+statusCode.getCode()+" "+statusCode.getMessage()+" \r\n";
+        return VERSION +statusCode.getCode()+" "+statusCode.getMessage()+" \r\n";
     }
 }
