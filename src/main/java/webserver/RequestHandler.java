@@ -2,6 +2,9 @@ package webserver;
 
 import java.io.*;
 import java.net.Socket;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -20,13 +23,38 @@ public class RequestHandler implements Runnable{
             BufferedReader br = new BufferedReader(new InputStreamReader(in));
             DataOutputStream dos = new DataOutputStream(out);
 
-            byte[] body = "Hello World".getBytes();
+            byte[] body = null;
+
+            String reqURL = getRequestURL(br);
+
+
+
+
+            if (reqURL.equals("/") || reqURL.equals("http://localhost/index.html")) {
+                body = Files.readAllBytes(Paths.get("/Users/yuna/Projects/KUIT/KUIT4_SERVER-Custom-Tomcat/webapp/index.html"));
+            }
+
+
             response200Header(dos, body.length);
             responseBody(dos, body);
 
         } catch (IOException e) {
             log.log(Level.SEVERE,e.getMessage());
         }
+    }
+
+    private String getRequestURL(BufferedReader br) {
+        try {
+            String startLine = br.readLine();
+            if (startLine != null && startLine.startsWith("GET")) {
+                char[] reqURL = new char[startLine.length()];
+                br.read(reqURL, 4, startLine.length()-4);
+                return reqURL.toString();
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return null;
     }
 
     private void response200Header(DataOutputStream dos, int lengthOfBodyContent) {
