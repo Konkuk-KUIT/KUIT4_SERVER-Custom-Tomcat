@@ -1,10 +1,7 @@
 package webserver;
 
 import db.MemoryUserRepository;
-import http.constant.HttpHeader;
-import http.constant.HttpMethod;
-import http.constant.UrlPath;
-import http.constant.UserQueryKey;
+import http.constant.*;
 import http.util.HttpRequestUtils;
 import http.util.IOUtils;
 import model.User;
@@ -245,9 +242,9 @@ public class RequestHandler implements Runnable{
 
     private void response200Header(DataOutputStream dos, int lengthOfBodyContent) {
         try {
-            dos.writeBytes("HTTP/1.1 200 OK \r\n");
-            dos.writeBytes("Content-Type: text/html;charset=utf-8\r\n");
-            dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
+            dos.writeBytes(HttpStatusCode.OK.getStatus() + " \r\n");
+            dos.writeBytes(HttpHeader.CONTENT_TYPE.getHeader() + ": text/html;charset=utf-8\r\n");
+            dos.writeBytes(HttpHeader.CONTENT_LENGTH.getHeader() + ": " + lengthOfBodyContent + "\r\n");
             dos.writeBytes("\r\n");
         } catch (IOException e) {
             log.log(Level.SEVERE, e.getMessage());
@@ -256,8 +253,8 @@ public class RequestHandler implements Runnable{
 
     private void response302Header(DataOutputStream dos, String location) {
         try {
-            dos.writeBytes("HTTP/1.1 302 Found \r\n");
-            dos.writeBytes("Location: " + location + "\r\n");
+            dos.writeBytes(HttpStatusCode.FOUND.getStatus() + " \r\n");
+            dos.writeBytes(HttpHeader.LOCATION.getHeader() + ": " + location + "\r\n");
             dos.writeBytes("\r\n");
         } catch (IOException e) {
             log.log(Level.SEVERE, e.getMessage());
@@ -266,9 +263,9 @@ public class RequestHandler implements Runnable{
 
     private void response302WithCookieHeader(DataOutputStream dos, String location, String cookie) {
         try {
-            dos.writeBytes("HTTP/1.1 302 Found \r\n");
-            dos.writeBytes("Location: " + location + "\r\n");
-            dos.writeBytes("Set-Cookie: " + cookie + "\r\n");
+            dos.writeBytes(HttpStatusCode.FOUND.getStatus() + " \r\n");
+            dos.writeBytes(HttpHeader.LOCATION.getHeader() + ": " + location + "\r\n");
+            dos.writeBytes(HttpHeader.SET_COOKIE.getHeader() + ": " + cookie + "\r\n");
             dos.writeBytes("\r\n");
         } catch (IOException e) {
             log.log(Level.SEVERE, e.getMessage());
@@ -277,9 +274,9 @@ public class RequestHandler implements Runnable{
 
     private void response200CssHeader(DataOutputStream dos, int lengthOfBodyContent) {
         try {
-            dos.writeBytes("HTTP/1.1 200 OK \r\n");
-            dos.writeBytes("Content-Type: text/css\r\n");
-            dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
+            dos.writeBytes(HttpStatusCode.OK.getStatus() + " \r\n");
+            dos.writeBytes(HttpHeader.CONTENT_TYPE.getHeader() + ": text/css\r\n");
+            dos.writeBytes(HttpHeader.CONTENT_LENGTH.getHeader() + ": " + lengthOfBodyContent + "\r\n");
             dos.writeBytes("\r\n");
         } catch (IOException e) {
             log.log(Level.SEVERE, e.getMessage());
