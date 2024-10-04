@@ -1,3 +1,4 @@
+// RequestHandler.java
 package webserver;
 
 import db.MemoryUserRepository;
@@ -92,11 +93,42 @@ public class RequestHandler implements Runnable {
                     response302HeaderWithCookie(dos, "/index.html", "logined=true");
                 } else {
                     // 로그인 실패
-                    response302Header(dos, "/logined_failed.html");
+                    response302Header(dos, "/user/login_failed.html");
                 }
+
                 return;
             }
 
+            // 요구사항 6
+            if (method.equals("GET") && path.equals("/user/userList")) {
+
+                boolean isLogined = false;
+
+                while (true) {
+                    final String line = br.readLine();
+                    if (line.isEmpty()) {
+                        break;
+                    }
+
+                    if (line.startsWith("Cookie")) {
+                        String loginState = line.split(": ")[1];
+
+                        if (loginState.equals("logined=true")) {
+                            isLogined = true;
+                        }
+
+                        if (loginState.equals("logined=false")) {
+                            isLogined = false;
+                        }
+                    }
+                }
+
+                if (isLogined) {
+                    response302UserListHeader(dos);
+                } else {
+                    response302LoginHeader(dos);
+                }
+            }
 
             // 기본 파일 처리 부분
             if ("/".equals(path)) {
@@ -107,12 +139,53 @@ public class RequestHandler implements Runnable {
 
             if (file.exists()) {
                 byte[] body = Files.readAllBytes(Paths.get(file.getPath()));
-                response200Header(dos, body.length);
+
+                String contentType = getContentType(path);
+
+                response200Header(dos, body.length, contentType);
                 responseBody(dos, body);
             } else {
                 response404Header(dos);
             }
 
+        } catch (IOException e) {
+            log.log(Level.SEVERE, e.getMessage());
+        }
+    }
+
+    private String getContentType(String path) {
+        if (path.endsWith(".html")) {
+            return "text/html;charset=utf-8";
+        } else if (path.endsWith(".css")) {
+            return "text/css;charset=utf-8";
+        } else if (path.endsWith(".js")) {
+            return "application/javascript;charset=utf-8";
+        } else if (path.endsWith(".png")) {
+            return "image/png";
+        } else if (path.endsWith(".jpg") || path.endsWith(".jpeg")) {
+            return "image/jpeg";
+        } else if (path.endsWith(".gif")) {
+            return "image/gif";
+        } else {
+            return "text/plain;charset=utf-8";
+        }
+    }
+
+    private void response302UserListHeader(DataOutputStream dos) {
+        try {
+            dos.writeBytes("HTTP/1.1 302 Found \r\n");
+            dos.writeBytes("Location: /user/list.html\r\n");
+            dos.writeBytes("\r\n");
+        } catch (IOException e) {
+            log.log(Level.SEVERE, e.getMessage());
+        }
+    }
+
+    private void response302LoginHeader(DataOutputStream dos) {
+        try {
+            dos.writeBytes("HTTP/1.1 302 Found \r\n");
+            dos.writeBytes("Location: /user/login.html\r\n");
+            dos.writeBytes("\r\n");
         } catch (IOException e) {
             log.log(Level.SEVERE, e.getMessage());
         }
@@ -136,6 +209,7 @@ public class RequestHandler implements Runnable {
         // 302 redirect
         response302Header(dos, "/index.html");
     }
+
     private void response302HeaderWithCookie(DataOutputStream dos, String redirectUrl, String cookie) {
         try {
             dos.writeBytes("HTTP/1.1 302 Found \r\n");
@@ -157,16 +231,17 @@ public class RequestHandler implements Runnable {
         }
     }
 
-    private void response200Header(DataOutputStream dos, int lengthOfBodyContent) {
+    private void response200Header(DataOutputStream dos, int lengthOfBodyContent, String contentType) {
         try {
             dos.writeBytes("HTTP/1.1 200 OK \r\n");
-            dos.writeBytes("Content-Type: text/html;charset=utf-8\r\n");
+            dos.writeBytes("Content-Type: " + contentType + "\r\n");
             dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
             dos.writeBytes("\r\n");
         } catch (IOException e) {
             log.log(Level.SEVERE, e.getMessage());
         }
     }
+
 
     private void response404Header(DataOutputStream dos) {
         try {
