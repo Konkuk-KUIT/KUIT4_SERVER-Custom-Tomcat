@@ -84,6 +84,23 @@ public class RequestHandler implements Runnable {
                 return;
             }
 
+            // /user/userList, /user/list.html 요청 처리
+            // home에서는 /user/userList, 그 외에는 /user/list.html
+            if ("/user/userList".equals(url) || "/user/list.html".equals(url)) {
+                String cookie = getCookie(br);
+
+                if ("logined=true".equals(cookie)) {
+                    body = Files.readAllBytes(Paths.get("./webapp/user/list.html"));
+                    response200Header(dos, body.length);
+                    responseBody(dos, body);
+                    return;
+                }
+
+                // 로그인되지 않은 경우 로그인 페이지로 리다이렉트
+                response302RedirectHeader(dos, "/user/login.html");
+                return;
+            }
+
             // 404 처리
             body = "404 Not Found".getBytes();
             response404Header(dos, body.length);
@@ -183,6 +200,24 @@ public class RequestHandler implements Runnable {
 
         // 302 리다이렉트 응답
         response302RedirectHeader(dos, "/index.html");
+    }
+
+    // 쿠키 정보 추출
+    private String getCookie(BufferedReader br) throws IOException {
+        String cookie = null;
+
+        while (true) {
+            final String line = br.readLine();
+
+            if (line.isEmpty()) {
+                break;
+            }
+
+            if (line.startsWith("Cookie:")) {
+                cookie = line.split(": ")[1];
+            }
+        }
+        return cookie;
     }
 
     private void response200Header(DataOutputStream dos, int lengthOfBodyContent) {
