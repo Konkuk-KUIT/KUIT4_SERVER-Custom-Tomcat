@@ -12,9 +12,9 @@ public class UserListController implements Controller{
         String cookie = headers.get("Cookie");
         System.out.println(cookie);
 
-        if (cookie.contains("logined=true")) {
+        if (cookie != null && cookie.contains("logined=true")) {
             response.redirect("/user/list.html");
-        }else{
+        } else {
             response.redirect("/user/login.html");
         }
     }
