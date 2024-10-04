@@ -12,7 +12,6 @@ import java.util.logging.Logger;
 import static Enum.HttpHeaderField.*;
 import static Enum.StatusCode.FOUND;
 import static Enum.StatusCode.OK;
-import static Enum.Url.STYLES_CSS;
 
 public class HttpResponse {
 
