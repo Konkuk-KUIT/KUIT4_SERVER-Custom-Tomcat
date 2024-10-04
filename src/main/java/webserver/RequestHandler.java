@@ -1,6 +1,10 @@
 package webserver;
 
 import db.MemoryUserRepository;
+import http.constant.HttpHeader;
+import http.constant.HttpMethod;
+import http.constant.UrlPath;
+import http.constant.UserQueryKey;
 import http.util.HttpRequestUtils;
 import http.util.IOUtils;
 import model.User;
@@ -33,7 +37,7 @@ public class RequestHandler implements Runnable{
 
             String requestLine = br.readLine();
             String[] tokens = requestLine.split(" ");
-            String method = tokens[0];
+            HttpMethod method = HttpMethod.valueOf(tokens[0]);
             String requestPath = tokens[1];
 
             handleRequest(method, requestPath, br, dos);
@@ -43,72 +47,72 @@ public class RequestHandler implements Runnable{
         }
     }
 
-    private void handleRequest(String method, String requestPath, BufferedReader br, DataOutputStream dos) throws IOException {
-        if (method.equals("GET")) {
+    private void handleRequest(HttpMethod method, String requestPath, BufferedReader br, DataOutputStream dos) throws IOException {
+        if (method == HttpMethod.GET) {
             // 요구사항 1
             if (isMainRequest(requestPath)) {
-                handleFileResponse(dos, WEB_ROOT + "/index.html");
+                handleFileResponse(dos, WEB_ROOT + UrlPath.INDEX.getPath());
             }
             // 요구사항 2 - 회원가입 form
-            if (isSignUpUserFormRequest(requestPath)) {
-                handleFileResponse(dos, WEB_ROOT + "/user/form.html");
+            else if (isSignUpUserFormRequest(requestPath)) {
+                handleFileResponse(dos, WEB_ROOT + UrlPath.SIGN_UP_FORM.getPath());
             }
             // 요구사항 2 - 회원가입 GET
-            if (isUserSignUpRequest(requestPath)) {
+            else if (isUserSignUpRequest(requestPath)) {
                 handleGetSignUpRequest(requestPath, dos);
             }
             // 요구사항 5 - 로그인 form
-            if (isLoginUserFormRequest(requestPath)) {
-                handleFileResponse(dos, WEB_ROOT + "/user/login.html");
+            else if (isLoginUserFormRequest(requestPath)) {
+                handleFileResponse(dos, WEB_ROOT + UrlPath.LOGIN_FORM.getPath());
             }
             // 요구사항 6 - user list 보기
-            if (isUserListRequest(requestPath)) {
+            else if (isUserListRequest(requestPath)) {
                 handleUserListRequest(br, dos);
             }
             // 요구사항 7 - css 적용
-            if (isCssRequest(requestPath)) {
+            else if (isCssRequest(requestPath)) {
                 handleCssResponse(dos, requestPath);
             }
         }
 
-        if (method.equals("POST")) {
+        else if (method == HttpMethod.POST) {
             // 요구사항 3 - 회원가입 POST
             if (isUserSignUpRequest(requestPath)) {
                 handlePostSignUpRequest(br, dos);
             }
             // 요구사항 5 - 로그인 처리 POST
-            if (isUserLoginRequest(requestPath)) {
+            else if (isUserLoginRequest(requestPath)) {
                 handlePostLoginRequest(br, dos);
             }
         }
     }
 
     private boolean isMainRequest(String requestPath) {
-        return requestPath.equals("/") || requestPath.equals("/index.html");
+        return requestPath.equals("/") || requestPath.equals(UrlPath.INDEX.getPath());
     }
 
     private boolean isSignUpUserFormRequest(String requestPath) {
-        return requestPath.equals("/user/form.html");
+        return requestPath.equals(UrlPath.SIGN_UP_FORM.getPath());
     }
 
     private boolean isUserSignUpRequest(String requestPath) {
-        return requestPath.contains("/user/signup");
+        return requestPath.contains(UrlPath.SIGN_UP.getPath());
     }
 
     private boolean isLoginUserFormRequest(String requestPath) {
-        return requestPath.equals("/user/login.html");
+        return requestPath.equals(UrlPath.LOGIN_FORM.getPath());
     }
 
     private boolean isUserLoginRequest(String requestPath) {
-        return requestPath.equals("/user/login");
+        return requestPath.equals(UrlPath.LOGIN.getPath());
     }
 
     private boolean isUserListRequest(String requestPath) {
-        return requestPath.equals("/user/userList");
+        return requestPath.equals(UrlPath.USER_LIST.getPath());
     }
 
     private boolean isCssRequest(String requestPath) {
-        return requestPath.endsWith(".css");
+        return requestPath.endsWith(UrlPath.CSS.getPath());
     }
 
     private void handleFileResponse(DataOutputStream dos, String filePath) {
@@ -129,7 +133,7 @@ public class RequestHandler implements Runnable{
             logUser(user, queryParameter);
 
             // 요구사항 4
-            response302Header(dos, "/index.html");
+            response302Header(dos, UrlPath.INDEX.getPath());
         }
     }
 
@@ -141,7 +145,7 @@ public class RequestHandler implements Runnable{
             if (line.equals("")) {
                 break;
             }
-            if (line.startsWith("Content-Length")) {
+            if (line.startsWith(HttpHeader.CONTENT_LENGTH.getHeader())) {
                 contentLength = Integer.parseInt(line.split(": ")[1]);
             }
         }
@@ -154,7 +158,7 @@ public class RequestHandler implements Runnable{
         logUser(user, queryParameter);
 
         // 요구사항 4
-        response302Header(dos, "/index.html");
+        response302Header(dos, UrlPath.INDEX.getPath());
     }
 
     private void handlePostLoginRequest(BufferedReader br, DataOutputStream dos) throws IOException {
@@ -165,7 +169,7 @@ public class RequestHandler implements Runnable{
             if (line.equals("")) {
                 break;
             }
-            if (line.startsWith("Content-Length")) {
+            if (line.startsWith(HttpHeader.CONTENT_LENGTH.getHeader())) {
                 contentLength = Integer.parseInt(line.split(": ")[1]);
             }
         }
@@ -173,24 +177,24 @@ public class RequestHandler implements Runnable{
         String body = IOUtils.readData(br, contentLength);
         Map<String, String> queryParameter = HttpRequestUtils.parseQueryParameter(body);
 
-        String userId = queryParameter.get("userId");
-        String password = queryParameter.get("password");
+        String userId = queryParameter.get(UserQueryKey.USER_ID.getKey());
+        String password = queryParameter.get(UserQueryKey.PASSWORD.getKey());
 
         User user = userRepository.findUserById(userId);
 
         if (user != null && user.getPassword().equals(password)) {
-            response302WithCookieHeader(dos, "/index.html", "logined=true");
+            response302WithCookieHeader(dos, UrlPath.INDEX.getPath(), "logined=true");
         } else {
-            response302Header(dos, "/user/logined_failed.html");
+            response302Header(dos, UrlPath.LOGIN_FAILED.getPath());
         }
     }
 
     private User createUserFromQuery(Map<String, String> queryParameter) {
         return new User(
-                queryParameter.get("userId"),
-                queryParameter.get("password"),
-                queryParameter.get("name"),
-                queryParameter.get("email")
+                queryParameter.get(UserQueryKey.USER_ID.getKey()),
+                queryParameter.get(UserQueryKey.PASSWORD.getKey()),
+                queryParameter.get(UserQueryKey.NAME.getKey()),
+                queryParameter.get(UserQueryKey.EMAIL.getKey())
         );
     }
 
@@ -203,9 +207,9 @@ public class RequestHandler implements Runnable{
     private void handleUserListRequest(BufferedReader br, DataOutputStream dos) throws IOException {
         String cookie = getCookie(br);
         if (cookie != null && cookie.contains("logined=true")) {
-            handleFileResponse(dos, WEB_ROOT + "/user/list.html");
+            handleFileResponse(dos, WEB_ROOT + UrlPath.LIST.getPath());
         } else {
-            response302Header(dos, "/user/login.html");
+            response302Header(dos, UrlPath.LOGIN_FORM.getPath());
         }
     }
 
