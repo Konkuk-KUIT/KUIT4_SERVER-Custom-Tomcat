@@ -146,7 +146,6 @@ public class RequestHandler implements Runnable {
 
         if (userId == null || password == null) {
             // 로그인이 잘못되었을 때 에러 처리
-            log.log(Level.SEVERE, "Login parameters are missing.");
             response302RedirectWithCookie(dos, "/user/login_failed.html", "logined=false");
             return;
         }
@@ -154,10 +153,8 @@ public class RequestHandler implements Runnable {
         User user = memoryUserRepository.findUserById(userId);
 
         if (user != null && user.getPassword().equals(password)) {
-            log.log(Level.INFO, "Login Success: " + userId);
             response302RedirectWithCookie(dos, "/index.html", "logined=true");
         } else {
-            log.log(Level.INFO, "Login Failed: " + userId);
             response302RedirectWithCookie(dos, "/user/login_failed.html", "logined=false");
         }
     }
@@ -185,9 +182,6 @@ public class RequestHandler implements Runnable {
         Map<String, String> params = HttpRequestUtils.parseQueryParameter(body);
 
         User user = new User(params.get("userId"), params.get("password"), params.get("name"), params.get("email"));
-
-        // 객체가 잘 생성되었는지 확인
-        log.log(Level.INFO, "User Created: " + user.getUserId());
 
         memoryUserRepository.addUser(user);
 
