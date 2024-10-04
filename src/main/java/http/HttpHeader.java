@@ -8,7 +8,7 @@ public enum HttpHeader {
     SET_COOKIE("Set-Cookie"),
     COOKIE("Cookie"),
     LOGINED_TRUE("logined=true"),
-    LOGINED_FALSE("logined=false"),;
+    LOGINED_FALSE("logined=false");
 
     private final String value;
 
