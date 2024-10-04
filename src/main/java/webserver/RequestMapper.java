@@ -27,8 +27,11 @@ public class RequestMapper {
     private void initControllers() {
         controllerMap.put(ROOT.getUrl(), new HomeController());
         controllerMap.put(INDEX.getUrl(), new HomeController());
+        controllerMap.put(USER_FORM.getUrl(), new ForwardController());
+        controllerMap.put(USER_LOGIN_HTML.getUrl(), new ForwardController());
         controllerMap.put(USER_SIGNUP.getUrl(), new SignUpController());
         controllerMap.put(USER_LOGIN.getUrl(), new LoginController());
+        controllerMap.put(USER_LIST_HTML.getUrl(), new ListController());
         controllerMap.put(USER_LIST.getUrl(), new ListController());
     }
 
