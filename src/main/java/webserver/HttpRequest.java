@@ -58,6 +58,14 @@ public class HttpRequest {
         return version;
     }
 
+    public boolean cookieLoginTrue() {
+        if (header.startsWith("Cookie:")) {
+            return header.contains("true");
+        }
+        return false;
+    }
+
+
     private static String extractStartLine(BufferedReader br) throws IOException {
         try {
             String startLine = br.readLine();
