@@ -45,16 +45,32 @@ public class RequestHandler implements Runnable{
 
     private void handleRequest(String method, String requestPath, BufferedReader br, DataOutputStream dos) throws IOException {
         if (method.equals("GET")) {
+            // 요구사항 1
             if (isMainRequest(requestPath)) {
                 handleFileResponse(dos, WEB_ROOT + "/index.html");
-            } else if (isSignUpUserFormRequest(requestPath)) {
+            }
+            // 요구사항 2 - 회원가입 form
+            else if (isSignUpUserFormRequest(requestPath)) {
                 handleFileResponse(dos, WEB_ROOT + "/user/form.html");
-            } else if (isUserSignUpRequest(requestPath)) {
+            }
+            // 요구사항 2 - 회원가입 GET
+            else if (isUserSignUpRequest(requestPath)) {
                 handleGetSignUpRequest(requestPath, dos);
             }
-        } else if (method.equals("POST")) {
+            // 요구사항 5 - 로그인 form
+            else if (isLoginUserFormRequest(requestPath)) {
+                handleFileResponse(dos, WEB_ROOT + "/user/login.html");
+            }
+        }
+
+        else if (method.equals("POST")) {
+            // 요구사항 3 - 회원가입 POST
             if (isUserSignUpRequest(requestPath)) {
-                handlePostSignupRequest(br, dos);
+                handlePostSignUpRequest(br, dos);
+            }
+            // 요구사항 5 - 로그인 처리 POST
+            else if (isUserLoginRequest(requestPath)) {
+                handlePostLoginRequest(br, dos);
             }
         }
     }
@@ -69,6 +85,14 @@ public class RequestHandler implements Runnable{
 
     private boolean isUserSignUpRequest(String requestPath) {
         return requestPath.contains("/user/signup");
+    }
+
+    private boolean isLoginUserFormRequest(String requestPath) {
+        return requestPath.equals("/user/login.html");
+    }
+
+    private boolean isUserLoginRequest(String requestPath) {
+        return requestPath.equals("/user/login");
     }
 
     private void handleFileResponse(DataOutputStream dos, String filePath) {
@@ -88,11 +112,12 @@ public class RequestHandler implements Runnable{
             userRepository.addUser(user);
             logUser(user, queryParameter);
 
-            response302Header(dos);
+            // 요구사항 4
+            response302Header(dos, "/index.html");
         }
     }
 
-    private void handlePostSignupRequest(BufferedReader br, DataOutputStream dos) throws IOException {
+    private void handlePostSignUpRequest(BufferedReader br, DataOutputStream dos) throws IOException {
         int contentLength = 0;
 
         while (true) {
@@ -112,7 +137,36 @@ public class RequestHandler implements Runnable{
         userRepository.addUser(user);
         logUser(user, queryParameter);
 
-        response302Header(dos);
+        // 요구사항 4
+        response302Header(dos, "/index.html");
+    }
+
+    private void handlePostLoginRequest(BufferedReader br, DataOutputStream dos) throws IOException {
+        int contentLength = 0;
+
+        while (true) {
+            String line = br.readLine();
+            if (line.equals("")) {
+                break;
+            }
+            if (line.startsWith("Content-Length")) {
+                contentLength = Integer.parseInt(line.split(": ")[1]);
+            }
+        }
+
+        String body = IOUtils.readData(br, contentLength);
+        Map<String, String> queryParameter = HttpRequestUtils.parseQueryParameter(body);
+
+        String userId = queryParameter.get("userId");
+        String password = queryParameter.get("password");
+
+        User user = userRepository.findUserById(userId);
+
+        if (user != null && user.getPassword().equals(password)) {
+            response302WithCookieHeader(dos, "/index.html", "logined=true");
+        } else {
+            response302Header(dos, "/user/logined_failed.html");
+        }
     }
 
     private User createUserFromQuery(Map<String, String> queryParameter) {
@@ -150,16 +204,26 @@ public class RequestHandler implements Runnable{
         }
     }
 
-    private void response302Header(DataOutputStream dos) {
+    private void response302Header(DataOutputStream dos, String location) {
         try {
             dos.writeBytes("HTTP/1.1 302 Found \r\n");
-            dos.writeBytes("Location: /index.html\r\n");
+            dos.writeBytes("Location: " + location + "\r\n");
             dos.writeBytes("\r\n");
         } catch (IOException e) {
             log.log(Level.SEVERE, e.getMessage());
         }
     }
 
+    private void response302WithCookieHeader(DataOutputStream dos, String location, String cookie) {
+        try {
+            dos.writeBytes("HTTP/1.1 302 Found \r\n");
+            dos.writeBytes("Location: " + location + "\r\n");
+            dos.writeBytes("Set-Cookie: " + cookie + "\r\n");
+            dos.writeBytes("\r\n");
+        } catch (IOException e) {
+            log.log(Level.SEVERE, e.getMessage());
+        }
+    }
 
     private void responseBody(DataOutputStream dos, byte[] body) {
         try {
