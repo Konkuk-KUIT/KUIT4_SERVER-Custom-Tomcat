@@ -1,6 +1,5 @@
 package webserver;
 
-import controller.*;
 import http.request.HttpRequest;
 import http.response.HttpResponse;
 
@@ -8,8 +7,6 @@ import java.io.*;
 import java.net.Socket;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import static constant.URL.*;
 
 public class RequestHandler implements Runnable{
     Socket connection;

@@ -12,7 +12,7 @@ import java.util.Map;
 public class RequestMapper {
 
     //url, controller가 key value 형태로 저장
-    private static Map<String, Controller> controllers = new HashMap<>();
+    private static final Map<String, Controller> controllers = new HashMap<>();
     private final HttpResponse response;
     private final HttpRequest request;
 
