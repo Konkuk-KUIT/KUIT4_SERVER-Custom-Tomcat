@@ -1,5 +1,7 @@
 package webserver;
 
+import Enums.FileLocation;
+import Enums.startLine;
 import db.MemoryUserRepository;
 import http.util.HttpRequestUtils;
 import http.util.IOUtils;
@@ -17,6 +19,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class RequestHandler implements Runnable{
+    static final String BaseURL = "http://localhost:80";
+    static final String LINE_BREAK = "\r\n";
+
     Socket connection;
     private static final Logger log = Logger.getLogger(RequestHandler.class.getName());
 
@@ -30,8 +35,6 @@ public class RequestHandler implements Runnable{
     이 객체를 다른데에서 접근하는 곳이 있나?
     static 블럭이 뭐하는 건지 알아보기
     인코딩도 IOUtils 사용하는게 좋아
-    시크릿 모드에서 테스트
-    리디렉트 할때 로그인 안됐으면 로그인 페이지로 리디렉트하기
     */
 
     @Override
@@ -147,17 +150,6 @@ public class RequestHandler implements Runnable{
         }
     }
 
-    private void redirectToLogin(DataOutputStream dos) {
-        try {
-            dos.writeBytes("HTTP/1.1 302 Found \r\n");
-            dos.writeBytes("Location: http://localhost:80/user/login.html\r\n");
-            dos.writeBytes("\r\n");
-            dos.flush();
-        } catch (IOException e) {
-            log.log(Level.SEVERE, e.getMessage());
-        }
-    }
-
     private void processSignup(String resource, String method, DataOutputStream dos) {
         addUserInRepository(resource, method);
         redirectToHome(dos);
@@ -210,16 +202,23 @@ public class RequestHandler implements Runnable{
         }
     }
 
-    private boolean isUserListRequest(String resource) {
-        return resource.split("\\?")[0].equals("/user/userList");
+    private void redirectToLogin(DataOutputStream dos) {
+        try {
+            dos.writeBytes(startLine.RESPONSE_FOUND.getText() + LINE_BREAK);
+            dos.writeBytes("Location: "+ BaseURL + FileLocation.USER_LOGIN.getLocation() + LINE_BREAK);
+            dos.writeBytes(LINE_BREAK);
+            dos.flush();
+        } catch (IOException e) {
+            log.log(Level.SEVERE, e.getMessage());
+        }
     }
 
     private void redirectHomeByLogin(DataOutputStream dos) {
         try {
-            dos.writeBytes("HTTP/1.1 302 Found \r\n");
-            dos.writeBytes("Location: http://localhost:80/\r\n");
-            dos.writeBytes("Set-Cookie: logined=true; Path=/\n\r\n");
-            dos.writeBytes("\r\n");
+            dos.writeBytes(startLine.RESPONSE_FOUND.getText() + LINE_BREAK);
+            dos.writeBytes("Location: " + BaseURL + LINE_BREAK);
+            dos.writeBytes("Set-Cookie: logined=true; Path=/\n"+LINE_BREAK);
+            dos.writeBytes(LINE_BREAK);
             dos.flush();
         } catch (IOException e) {
             log.log(Level.SEVERE, e.getMessage());
@@ -228,14 +227,39 @@ public class RequestHandler implements Runnable{
 
     private void redirectLoginFailed(DataOutputStream dos) {
         try {
-            dos.writeBytes("HTTP/1.1 302 Found \r\n");
-            dos.writeBytes("Location: http://localhost:80/user/login_failed.html\r\n");
-            dos.writeBytes("\r\n");
+            dos.writeBytes(startLine.RESPONSE_FOUND.getText() + LINE_BREAK);
+            dos.writeBytes("Location: " + BaseURL + FileLocation.USER_LOGINFAILED.getLocation() +LINE_BREAK);
+            dos.writeBytes(LINE_BREAK);
             dos.flush();
         } catch (IOException e) {
             log.log(Level.SEVERE, e.getMessage());
         }
     }
+
+
+    private void redirectToHome(DataOutputStream dos) {
+        try {
+            dos.writeBytes(startLine.RESPONSE_FOUND.getText() + LINE_BREAK);
+            dos.writeBytes("Location: " + BaseURL + LINE_BREAK);
+            dos.writeBytes(LINE_BREAK);
+            dos.flush();
+        } catch (IOException e) {
+            log.log(Level.SEVERE, e.getMessage());
+        }
+    }
+
+    private boolean isUserListRequest(String resource) {
+        return resource.split("\\?")[0].equals("/user/userList");
+    }
+
+    private boolean isLoginRequest(String resource) {
+        return resource.equals("/user/login");
+    }
+
+    private boolean isSignupRequest(String resource) {
+        return resource.split("\\?")[0].equals("/user/signup");
+    }
+
 
     private String getBodyInPOST(BufferedReader br) {
         try {
@@ -266,20 +290,7 @@ public class RequestHandler implements Runnable{
         return "";
     }
 
-    private boolean isLoginRequest(String resource) {
-        return resource.equals("/user/login");
-    }
 
-    private void redirectToHome(DataOutputStream dos) {
-        try {
-            dos.writeBytes("HTTP/1.1 302 Found \r\n");
-            dos.writeBytes("Location: http://localhost:80/\r\n");
-            dos.writeBytes("\r\n");
-            dos.flush();
-        } catch (IOException e) {
-            log.log(Level.SEVERE, e.getMessage());
-        }
-    }
 
     private void addUserInRepository(String resource, String method) {
         String queries = getLineIncludingQueries(resource, method);
@@ -303,9 +314,7 @@ public class RequestHandler implements Runnable{
         return queries;
     }
 
-    private boolean isSignupRequest(String resource) {
-        return resource.split("\\?")[0].equals("/user/signup");
-    }
+
 
     private static byte[] getPageinWebappFolder(String resource) throws IOException {
         byte[] page = Files.readAllBytes(convertToPath(resource));
@@ -315,20 +324,20 @@ public class RequestHandler implements Runnable{
 
     private static Path convertToPath(String resource) {
         if (resource.equals("/")) {
-            resource = "/index.html";
+            resource = FileLocation.INDEX.getLocation();
         }
         if(resource.equals("/user/userList")){
-            resource = "/user/list.html";
+            resource = FileLocation.USER_LIST.getLocation();
         }
         return Path.of("./webapp" + resource);
     }
 
     private void response200Header(DataOutputStream dos, int lengthOfBodyContent, String contentType) {
         try {
-            dos.writeBytes("HTTP/1.1 200 OK \r\n");
-            dos.writeBytes("Content-Type: text/"+contentType+";charset=utf-8\r\n");
-            dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
-            dos.writeBytes("\r\n");
+            dos.writeBytes(startLine.RESPONSE_OK.getText() + LINE_BREAK);
+            dos.writeBytes("Content-Type: text/"+contentType+";charset=utf-8"+LINE_BREAK);
+            dos.writeBytes("Content-Length: " + lengthOfBodyContent + LINE_BREAK);
+            dos.writeBytes(LINE_BREAK);
         } catch (IOException e) {
             log.log(Level.SEVERE, e.getMessage());
         }
