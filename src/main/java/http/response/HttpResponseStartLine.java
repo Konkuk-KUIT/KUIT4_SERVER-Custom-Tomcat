@@ -1,7 +1,5 @@
 package http.response;
 
-import java.io.DataOutputStream;
-
 public class HttpResponseStartLine {
 
 
@@ -15,19 +13,7 @@ public class HttpResponseStartLine {
         this.message = message;
     }
 
-    public String getStatusCode() {
-        return statusCode;
-    }
-
-    public String getMessage() {
-        return message;
-    }
-
-    public String getVersion() {
-        return VERSION;
-    }
-
-    public String getReponseStartLine(){
+    public String getResponseStartLine(){
         return VERSION + " " + statusCode + " " + message + "\r\n";
     }
 }

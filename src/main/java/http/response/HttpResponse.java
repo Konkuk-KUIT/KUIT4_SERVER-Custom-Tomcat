@@ -1,7 +1,5 @@
 package http.response;
 
-import constant.HttpHeaderTitle;
-
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -75,7 +73,7 @@ public class HttpResponse {
 
     private void writeResponseHeader() throws IOException {
         // startline을 outputStream에 적어주기
-        dos.writeBytes(httpResponseStartLine.getReponseStartLine());
+        dos.writeBytes(httpResponseStartLine.getResponseStartLine());
 
         // 헤더들을 outputStream에 적어주기
         for(Map.Entry<String, String> entry : httpResponseHeader.getHeaderMap().entrySet()) {

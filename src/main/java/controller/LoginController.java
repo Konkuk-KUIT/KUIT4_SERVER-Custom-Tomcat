@@ -15,7 +15,7 @@ import static constant.QueryKey.USERID;
 import static constant.Url.INDEX_HTML;
 import static constant.Url.USER_LOGIN_FAILED_HTML;
 
-public class LoginController implements Controller{
+public class LoginController implements Controller {
 
     Repository repository;
 
@@ -35,17 +35,23 @@ public class LoginController implements Controller{
 
             response.putHeader(SET_COOKIE.getHeaderTitle(), "logined=false");
             response.redirect(USER_LOGIN_FAILED_HTML.getUrl());
-        } else { // 입력한 ID에 대한 회원은 존재하는 경우
 
-            String findUserPassword = findUser.getPassword();
-
-            if (findUserPassword.equals(password)) {
-                response.putHeader(SET_COOKIE.getHeaderTitle(), "logined=true");
-                response.redirect(INDEX_HTML.getUrl());
-            } else {
-                response.putHeader(SET_COOKIE.getHeaderTitle(), "logined=false");
-                response.redirect(USER_LOGIN_FAILED_HTML.getUrl());
-            }
+            return;
         }
+
+        // 입력한 ID에 대한 회원은 존재하는 경우
+        String findUserPassword = findUser.getPassword();
+
+        if (findUserPassword.equals(password)) {
+            response.putHeader(SET_COOKIE.getHeaderTitle(), "logined=true");
+            response.redirect(INDEX_HTML.getUrl());
+
+            return;
+        }
+
+        response.putHeader(SET_COOKIE.getHeaderTitle(), "logined=false");
+        response.redirect(USER_LOGIN_FAILED_HTML.getUrl());
+
+
     }
 }

@@ -25,7 +25,7 @@ public class SignUpController implements Controller {
     @Override
     public void execute(HttpRequest request, HttpResponse response) throws IOException {
 
-        if (request.getMethod().equals(GET.getMethod())) {
+        if (request.isGetMethod()) {
             if (request.getUrl().contains("?")) {
 
                 String userId = request.getQueryParamValue(USERID.getKey());
@@ -41,7 +41,7 @@ public class SignUpController implements Controller {
             }
         }
 
-        if (request.getMethod().equals(POST.getMethod())) {
+        if (request.isPostMethod()) {
             String userId = request.getBodyParamValue(USERID.getKey());
             String password = request.getBodyParamValue(PASSWORD.getKey());
             String name = request.getBodyParamValue(NAME.getKey());

@@ -36,6 +36,11 @@ public class HttpRequest {
         return httpRequestStartLine.getMethod().equals(GET.getMethod());
     }
 
+    // GET 요청인지 확인
+    public boolean isPostMethod(){
+        return httpRequestStartLine.getMethod().equals(POST.getMethod());
+    }
+
     // url이 .html로 끝나는지 확인
     public boolean endsWithHtml(){
         return httpRequestStartLine.getUrl().endsWith(HTML_EXTENSION.getUrl());

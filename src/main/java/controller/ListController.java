@@ -15,8 +15,10 @@ public class ListController implements Controller {
 
         if (login) {
             response.redirect(USER_LIST_HTML.getUrl());
-        } else {
-            response.redirect(USER_LOGIN_HTML.getUrl());
+            return;
         }
+
+        response.redirect(USER_LOGIN_HTML.getUrl());
+
     }
 }

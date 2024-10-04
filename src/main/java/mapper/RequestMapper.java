@@ -24,6 +24,11 @@ public class RequestMapper {
         this.response = response;
         this.controllers = new HashMap<>();
 
+        initControllers();
+
+    }
+
+    private void initControllers() {
         controllers.put(ROOT.getUrl(), new HomeController());
         controllers.put(USER_SIGNUP.getUrl(), new SignUpController(MemoryUserRepository.getInstance()));
         controllers.put(USER_LOGIN.getUrl(), new LoginController(MemoryUserRepository.getInstance()));
@@ -35,12 +40,12 @@ public class RequestMapper {
         Controller forwardController = new ForwardController();
 
         // .css 확장자로 들어오는 styles.css 파일을 인식해주기 위해 .css에 대한 코드도 추가
-        if(request.isGetMethod() && (request.endsWithHtml()) || request.endsWithCss()){
+        if (request.isGetMethod() && (request.endsWithHtml()) || request.endsWithCss()) {
             forwardController.execute(request, response);
-        } else{
-            controller.execute(request, response);
+            return;
         }
 
+        controller.execute(request, response);
 
     }
 }
