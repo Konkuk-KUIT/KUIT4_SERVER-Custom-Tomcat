@@ -31,8 +31,7 @@ public class RequestHandler implements Runnable{
             requestMapper.proceed();
 
         } catch (Exception e) {
-            log.log(Level.SEVERE, e.getMessage());
-            System.out.println(Arrays.toString(e.getStackTrace()));
+            log.log(Level.SEVERE, "ex : " + e.getMessage() + "\nstack trace : " + e);
         }
     }
 }
