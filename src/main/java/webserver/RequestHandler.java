@@ -1,8 +1,12 @@
 package webserver;
 
 import db.MemoryUserRepository;
+import http.HttpHeader;
+import http.HttpStatusCode;
+import http.Url;
 import http.util.HttpRequestUtils;
 import model.User;
+import model.UserQueryKey;
 
 import java.io.*;
 import java.net.Socket;
@@ -11,6 +15,11 @@ import java.nio.file.Paths;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import static http.HttpHeader.*;
+import static http.HttpStatusCode.*;
+import static http.Url.*;
+import static model.UserQueryKey.*;
 
 public class RequestHandler implements Runnable {
     Socket connection;
@@ -40,45 +49,44 @@ public class RequestHandler implements Runnable {
             byte[] body;
 
             // /index.html 요청 처리
-            if ("/".equals(url) || "/index.html".equals(url)) {
-                body = Files.readAllBytes(Paths.get("./webapp/index.html"));
+            if (ROOT.getUrl().equals(url) || INDEX.getUrl().equals(url)) {
+                body = Files.readAllBytes(Paths.get(WEBAPP.getUrl() + INDEX.getUrl()));
                 response200Header(dos, body.length);
                 responseBody(dos, body);
                 return;
             }
 
             // /user/form.html 요청 처리
-            if ("/user/form.html".equals(url)) {
-                body = Files.readAllBytes(Paths.get("./webapp/user/form.html"));
+            if (USER_FORM.getUrl().equals(url)) {
+                body = Files.readAllBytes(Paths.get(WEBAPP.getUrl() + USER_FORM.getUrl()));
                 response200Header(dos, body.length);
                 responseBody(dos, body);
                 return;
             }
 
             // /user/signup 요청 처리
-            if (url.startsWith("/user/signup")) {
-//                handleSignUp(url, dos);
+            if (url.startsWith(USER_SIGNUP.getUrl())) {
                 handlePostSignUp(br, dos);
                 return;
             }
 
             // /user/login.html 요청 처리
-            if ("/user/login.html".equals(url)) {
-                body = Files.readAllBytes(Paths.get("./webapp/user/login.html"));
+            if (USER_LOGIN_HTML.getUrl().equals(url)) {
+                body = Files.readAllBytes(Paths.get(WEBAPP.getUrl() + USER_LOGIN_HTML.getUrl()));
                 response200Header(dos, body.length);
                 responseBody(dos, body);
                 return;
             }
 
             // /user/login 요청 처리
-            if ("/user/login".equals(url)) {
+            if (USER_LOGIN.getUrl().equals(url)) {
                 handleLogin(br, dos);
                 return;
             }
 
             // /user/login_failed.html 요청 처리
-            if ("/user/login_failed.html".equals(url)) {
-                body = Files.readAllBytes(Paths.get("./webapp/user/login_failed.html"));
+            if (USER_LOGIN_FAILED.getUrl().equals(url)) {
+                body = Files.readAllBytes(Paths.get(WEBAPP.getUrl() + USER_LOGIN_FAILED.getUrl()));
                 response200Header(dos, body.length);
                 responseBody(dos, body);
                 return;
@@ -86,24 +94,24 @@ public class RequestHandler implements Runnable {
 
             // /user/userList, /user/list.html 요청 처리
             // home에서는 /user/userList, 그 외에는 /user/list.html
-            if ("/user/userList".equals(url) || "/user/list.html".equals(url)) {
+            if (USER_LIST.getUrl().equals(url) || USER_LIST_HTML.getUrl().equals(url)) {
                 String cookie = getCookie(br);
 
-                if ("logined=true".equals(cookie)) {
-                    body = Files.readAllBytes(Paths.get("./webapp/user/list.html"));
+                if (LOGINED_TRUE.getValue().equals(cookie)) {
+                    body = Files.readAllBytes(Paths.get(WEBAPP.getUrl() + USER_LIST_HTML.getUrl()));
                     response200Header(dos, body.length);
                     responseBody(dos, body);
                     return;
                 }
 
                 // 로그인되지 않은 경우 로그인 페이지로 리다이렉트
-                response302RedirectHeader(dos, "/user/login.html");
+                response302RedirectHeader(dos, USER_LOGIN_HTML.getUrl());
                 return;
             }
 
             // css 파일 요청 처리
-            if (url.endsWith(".css")) {
-                body = Files.readAllBytes(Paths.get("./webapp" + url));
+            if (url.endsWith(CSS_EXTENSION.getUrl())) {
+                body = Files.readAllBytes(Paths.get(WEBAPP.getUrl() + url));
                 response200HeaderCss(dos, body.length);
                 responseBody(dos, body);
                 return;
@@ -129,7 +137,7 @@ public class RequestHandler implements Runnable {
                 break;
             }
             // header info
-            if (line.startsWith("Content-Length")) {
+            if (line.startsWith(CONTENT_LENGTH.getValue())) {
                 requestContentLength = Integer.parseInt(line.split(": ")[1]);
             }
         }
@@ -141,21 +149,21 @@ public class RequestHandler implements Runnable {
 
         Map<String, String> params = HttpRequestUtils.parseQueryParameter(body);
 
-        String userId = params.get("userId");
-        String password = params.get("password");
+        String userId = params.get(USER_ID.getKey());
+        String password = params.get(PASSWORD.getKey());
 
         if (userId == null || password == null) {
             // 로그인이 잘못되었을 때 에러 처리
-            response302RedirectWithCookie(dos, "/user/login_failed.html", "logined=false");
+            response302RedirectWithCookie(dos, USER_LOGIN_FAILED.getUrl(), LOGINED_FALSE.getValue());
             return;
         }
 
         User user = memoryUserRepository.findUserById(userId);
 
         if (user != null && user.getPassword().equals(password)) {
-            response302RedirectWithCookie(dos, "/index.html", "logined=true");
+            response302RedirectWithCookie(dos, INDEX.getUrl(), LOGINED_TRUE.getValue());
         } else {
-            response302RedirectWithCookie(dos, "/user/login_failed.html", "logined=false");
+            response302RedirectWithCookie(dos, USER_LOGIN_FAILED.getUrl(), LOGINED_FALSE.getValue());
         }
     }
 
@@ -169,7 +177,7 @@ public class RequestHandler implements Runnable {
                 break;
             }
             // header info
-            if (line.startsWith("Content-Length")) {
+            if (line.startsWith(CONTENT_LENGTH.getValue())) {
                 requestContentLength = Integer.parseInt(line.split(": ")[1]);
             }
         }
@@ -181,26 +189,12 @@ public class RequestHandler implements Runnable {
 
         Map<String, String> params = HttpRequestUtils.parseQueryParameter(body);
 
-        User user = new User(params.get("userId"), params.get("password"), params.get("name"), params.get("email"));
+        User user = new User(params.get(USER_ID.getKey()), params.get(PASSWORD.getKey()), params.get(NAME.getKey()), params.get(EMAIL.getKey()));
 
         memoryUserRepository.addUser(user);
 
         // 302 리다이렉트 응답
-        response302RedirectHeader(dos, "/index.html");
-    }
-
-    // 회원가입 처리
-    private void handleSignUp(String url, DataOutputStream dos) throws IOException {
-        // URL에서 쿼리스트링을 파싱하여 사용자 정보를 추출
-        String queryString = url.split("\\?")[1];
-        Map<String, String> params = HttpRequestUtils.parseQueryParameter(queryString);
-
-        User user = new User(params.get("userId"), params.get("password"), params.get("name"), params.get("email"));
-
-        memoryUserRepository.addUser(user);
-
-        // 302 리다이렉트 응답
-        response302RedirectHeader(dos, "/index.html");
+        response302RedirectHeader(dos, INDEX.getUrl());
     }
 
     // 쿠키 정보 추출
@@ -214,7 +208,7 @@ public class RequestHandler implements Runnable {
                 break;
             }
 
-            if (line.startsWith("Cookie:")) {
+            if (line.startsWith(COOKIE.getValue())) {
                 cookie = line.split(": ")[1];
             }
         }
@@ -223,9 +217,9 @@ public class RequestHandler implements Runnable {
 
     private void response200Header(DataOutputStream dos, int lengthOfBodyContent) {
         try {
-            dos.writeBytes("HTTP/1.1 200 OK \r\n");
-            dos.writeBytes("Content-Type: text/html;charset=utf-8\r\n");
-            dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
+            dos.writeBytes("HTTP/1.1 " + OK + " \r\n");
+            dos.writeBytes(CONTENT_TYPE.getValue() + ": text/html;charset=utf-8\r\n");
+            dos.writeBytes(CONTENT_LENGTH.getValue()+": " + lengthOfBodyContent + "\r\n");
             dos.writeBytes("\r\n");
         } catch (IOException e) {
             log.log(Level.SEVERE, e.getMessage());
@@ -234,9 +228,9 @@ public class RequestHandler implements Runnable {
 
     private void response200HeaderCss(DataOutputStream dos, int lengthOfBodyContent) {
         try {
-            dos.writeBytes("HTTP/1.1 200 OK \r\n");
-            dos.writeBytes("Content-Type: text/css;charset=utf-8\r\n");
-            dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
+            dos.writeBytes("HTTP/1.1 " + OK + " \r\n");
+            dos.writeBytes(CONTENT_TYPE.getValue() + ": text/css;charset=utf-8\r\n");
+            dos.writeBytes(CONTENT_LENGTH.getValue()+": " + lengthOfBodyContent + "\r\n");
             dos.writeBytes("\r\n");
         } catch (IOException e) {
             log.log(Level.SEVERE, e.getMessage());
@@ -245,9 +239,9 @@ public class RequestHandler implements Runnable {
 
     private void response404Header(DataOutputStream dos, int lengthOfBodyContent) {
         try {
-            dos.writeBytes("HTTP/1.1 404 Not Found \r\n");
-            dos.writeBytes("Content-Type: text/html;charset=utf-8\r\n");
-            dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
+            dos.writeBytes("HTTP/1.1 " + NOT_FOUND + " \r\n");
+            dos.writeBytes(CONTENT_TYPE.getValue() + ": text/html;charset=utf-8\r\n");
+            dos.writeBytes(CONTENT_LENGTH.getValue()+": " + lengthOfBodyContent + "\r\n");
             dos.writeBytes("\r\n");
         } catch (IOException e) {
             log.log(Level.SEVERE, e.getMessage());
@@ -257,8 +251,8 @@ public class RequestHandler implements Runnable {
     // 302 리다이렉트 응답 처리
     private void response302RedirectHeader(DataOutputStream dos, String location) {
         try {
-            dos.writeBytes("HTTP/1.1 302 Found \r\n");
-            dos.writeBytes("Location: " + location + "\r\n");
+            dos.writeBytes("HTTP/1.1 " + FOUND + " \r\n");
+            dos.writeBytes(LOCATION.getValue()+": " + location + "\r\n");
             dos.writeBytes("\r\n");
         } catch (IOException e) {
             log.log(Level.SEVERE, e.getMessage());
@@ -268,9 +262,9 @@ public class RequestHandler implements Runnable {
     // 302 리다이렉트 응답 처리 (Cookie 포함)
     private void response302RedirectWithCookie(DataOutputStream dos, String location, String cookie) {
         try {
-            dos.writeBytes("HTTP/1.1 302 Found \r\n");
-            dos.writeBytes("Location: " + location + "\r\n");
-            dos.writeBytes("Set-Cookie: " + cookie + "; Path=/\r\n");
+            dos.writeBytes("HTTP/1.1 " + FOUND + " \r\n");
+            dos.writeBytes(LOCATION.getValue()+": " + location + "\r\n");
+            dos.writeBytes(SET_COOKIE.getValue()+": " + cookie + "; Path=/\r\n");
             dos.writeBytes("\r\n");
         } catch (IOException e) {
             log.log(Level.SEVERE, e.getMessage());
