@@ -4,34 +4,30 @@ import db.MemoryUserRepository;
 import db.Repository;
 import webserver.controller.*;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
 public class RequestMapper {
     private final HttpRequest httpRequest;
     private final HttpResponse httpResponse;
-    private final Map<String, Controller> controllers;
+    private static final Map<String, Controller> controllers = new HashMap<>();
 
     // DI 주입!!!
-    private final Repository userRepository;
+    private static final Repository userRepository = MemoryUserRepository.getInstance();
 
-    public RequestMapper(HttpRequest httpRequest, HttpResponse httpResponse, Repository userRepository) {
+    public RequestMapper(HttpRequest httpRequest, HttpResponse httpResponse) {
         this.httpRequest = httpRequest;
         this.httpResponse = httpResponse;
-        this.controllers = new HashMap<>();
-        this.userRepository = userRepository;
 
         // 컨트롤러 등록
         initializeControllers();
     }
 
     private void initializeControllers() {
-        LoginController loginController = new LoginController();
-        SignUpController signUpController = new SignUpController();
-
         // DI 완료!!!
-        loginController.setUserRepository(userRepository);
-        signUpController.setUserRepository(userRepository);
+        LoginController loginController = new LoginController(userRepository);
+        SignUpController signUpController = new SignUpController(userRepository);
 
         // controllers 맵에 등록
         controllers.put("/user/signup", signUpController);
@@ -40,7 +36,7 @@ public class RequestMapper {
         controllers.put("/", new HomeController());
     }
 
-    public void proceed() {
+    public void proceed() throws IOException {
         Controller controller = controllers.get(httpRequest.getPath());
         Controller forwardController = new ForwardController();
         if (controller != null) {
@@ -48,7 +44,6 @@ public class RequestMapper {
         } else {
             //todo 404 Not Found 처리
 
-            // GET 요청이고 루트패스가 아닌것으로 끝나는 경우 ForwardController 사용
             if (httpRequest.getMethod().equals("GET")) {
                 forwardController.execute(httpRequest, httpResponse);
             }

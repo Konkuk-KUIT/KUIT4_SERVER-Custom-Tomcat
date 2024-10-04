@@ -13,8 +13,6 @@ public class WebServer {
     private static final int DEFAULT_PORT = 80;
     private static final int DEFAULT_THREAD_NUM = 50;
     private static final Logger log = Logger.getLogger(WebServer.class.getName());
-    // DI를 위해
-    private static MemoryUserRepository userRepository = MemoryUserRepository.getInstance();
 
     public static void main(String[] args) throws IOException {
         int port = DEFAULT_PORT;
@@ -32,7 +30,7 @@ public class WebServer {
             Socket connection;
             while ((connection = welcomeSocket.accept()) != null) {
                 // 스레드에 작업 전달 DI 구현
-                service.submit(new RequestHandler(connection, userRepository));
+                service.submit(new RequestHandler(connection));
             }
         }
 

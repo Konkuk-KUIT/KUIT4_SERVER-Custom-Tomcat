@@ -15,11 +15,9 @@ import java.util.logging.Logger;
 public class RequestHandler implements Runnable{
     Socket connection;
     private static final Logger log = Logger.getLogger(RequestHandler.class.getName());
-    private Repository userRepository;
     // 여기서 repository DI 받음
-    public RequestHandler(Socket connection , Repository userRepository) {
+    public RequestHandler(Socket connection) {
         this.connection = connection;
-        this.userRepository = userRepository;
     }
 
 
@@ -34,11 +32,11 @@ public class RequestHandler implements Runnable{
             HttpRequest httpRequest = HttpRequest.from(br);
             HttpResponse httpResponse = new HttpResponse(dos);
 
-            RequestMapper requestMapper = new RequestMapper(httpRequest, httpResponse, userRepository);
+            RequestMapper requestMapper = new RequestMapper(httpRequest, httpResponse);
             requestMapper.proceed();
 
             } catch (IOException e) {
-                log.log(Level.SEVERE,e.getMessage());
+                log.log(Level.SEVERE, e.getMessage(), e);
             }
         }
 

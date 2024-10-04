@@ -11,25 +11,20 @@ import java.io.IOException;
 
 public class LoginController implements Controller {
     private Repository userRepository;
-    public void setUserRepository(Repository userRepository) {
+    public LoginController(Repository userRepository) {
         this.userRepository = userRepository;
     }
 
     @Override
-    public void execute(HttpRequest request, HttpResponse response) {
+    public void execute(HttpRequest request, HttpResponse response) throws IOException {
         String userId = request.getBodyParams().get("userId");
         String password = request.getBodyParams().get("password");
         User user = userRepository.findUserById(userId);
-        if (user != null){
-            if (password.equals(user.getPassword())){
-                //todo 아직 쿠키 res에 대해선 리펙토링 안함.
-                response.response302RedirectWithCookie(URLPath.INDEX.getPath(),"logined=true");
-            }
+        final boolean authenticated = user != null && password.equals(user.getPassword());
+        if (authenticated){
+            response.addHeader("Set-Cookie", "logined=true");
+            response.forward(URLPath.INDEX.getPath());
         }
-        try {
-            response.redirect(URLPath.LOGINFAIL.getPath());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        response.redirect(URLPath.LOGINFAIL.getPath());
     }
 }

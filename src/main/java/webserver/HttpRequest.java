@@ -85,6 +85,10 @@ public class HttpRequest {
         return headers;
     }
 
+    public String getHeader(String key) {
+        return headers.get(key);
+    }
+
     public Map<String, String> getQueryParams() {
         return queryParams;
     }

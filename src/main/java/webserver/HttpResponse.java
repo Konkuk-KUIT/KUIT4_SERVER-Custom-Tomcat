@@ -76,19 +76,6 @@ public class HttpResponse {
         dos.writeBytes("\r\n");
     }
 
-    // 302 Redirect with Cookie 응답
-    //todo 리팩토링 안끝남.
-    public void response302RedirectWithCookie(String url, String cookie) {
-        try {
-            setStatus(StatusCode.FOUND.getCode(), StatusCode.FOUND.getPhrase());
-            addHeader("Set-Cookie", cookie);
-            addHeader("Location", url);
-            writeHeaders();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
     // 파일 경로에 따른 Content-Type 반환
     private String getContentType(String filePath) {
         String lowerCasePath = filePath.toLowerCase();

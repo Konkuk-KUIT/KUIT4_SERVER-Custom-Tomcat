@@ -9,11 +9,11 @@ import java.util.HashMap;
 
 public class SignUpController implements Controller {
     private Repository userRepository;
-    public void setUserRepository(Repository userRepository) {
+    public SignUpController(Repository userRepository) {
         this.userRepository = userRepository;
     }
     @Override
-    public void execute(HttpRequest request, HttpResponse response) {
+    public void execute(HttpRequest request, HttpResponse response) throws IOException {
         HashMap<String, String> params = new HashMap<>();
         if (request.getMethod().equals(HttpMethod.GET.getMethod())) {
             // 요구 사항2:  get로 회원가입
@@ -30,10 +30,6 @@ public class SignUpController implements Controller {
         if (userRepository.findUserById(userId) == null) {
             userRepository.addUser(user);
         }
-        try {
-            response.redirect(URLPath.INDEX.getPath());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        response.redirect(URLPath.INDEX.getPath());
     }
 }
