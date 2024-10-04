@@ -1,0 +1,7 @@
+POST /user/login HTTP/1.1
+Host: localhost:80
+Connection: keep-alive
+Content-Length: 37
+Accept: */*
+
+userId=body_id&password=body_password
