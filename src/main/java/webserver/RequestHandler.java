@@ -65,6 +65,10 @@ public class RequestHandler implements Runnable{
             if (isUserListRequest(requestPath)) {
                 handleUserListRequest(br, dos);
             }
+            // 요구사항 7 - css 적용
+            if (isCssRequest(requestPath)) {
+                handleCssResponse(dos, requestPath);
+            }
         }
 
         if (method.equals("POST")) {
@@ -101,6 +105,10 @@ public class RequestHandler implements Runnable{
 
     private boolean isUserListRequest(String requestPath) {
         return requestPath.equals("/user/userList");
+    }
+
+    private boolean isCssRequest(String requestPath) {
+        return requestPath.endsWith(".css");
     }
 
     private void handleFileResponse(DataOutputStream dos, String filePath) {
@@ -211,6 +219,17 @@ public class RequestHandler implements Runnable{
         return null;
     }
 
+    private void handleCssResponse(DataOutputStream dos, String requestPath) {
+        String filePath = WEB_ROOT + requestPath;
+        byte[] body = readFile(filePath);
+        if (body != null) {
+            response200CssHeader(dos, body.length);
+            responseBody(dos, body);
+        } else {
+            log.log(Level.SEVERE, "CSS file not found: " + requestPath);
+        }
+    }
+
     private byte[] readFile(String filePath) {
         try {
             return Files.readAllBytes(Paths.get(filePath));
@@ -246,6 +265,17 @@ public class RequestHandler implements Runnable{
             dos.writeBytes("HTTP/1.1 302 Found \r\n");
             dos.writeBytes("Location: " + location + "\r\n");
             dos.writeBytes("Set-Cookie: " + cookie + "\r\n");
+            dos.writeBytes("\r\n");
+        } catch (IOException e) {
+            log.log(Level.SEVERE, e.getMessage());
+        }
+    }
+
+    private void response200CssHeader(DataOutputStream dos, int lengthOfBodyContent) {
+        try {
+            dos.writeBytes("HTTP/1.1 200 OK \r\n");
+            dos.writeBytes("Content-Type: text/css\r\n");
+            dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
             dos.writeBytes("\r\n");
         } catch (IOException e) {
             log.log(Level.SEVERE, e.getMessage());
