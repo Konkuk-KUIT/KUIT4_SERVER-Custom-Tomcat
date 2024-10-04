@@ -24,6 +24,16 @@ public class RequestHandler implements Runnable{
         this.connection = connection;
     }
 
+    /*
+    TODO br 주면 파싱하는 객체를 만들고 거기서 필요한 값 받기
+    한번만 써도 되는 객체에는 static 사용 고려하기
+    이 객체를 다른데에서 접근하는 곳이 있나?
+    static 블럭이 뭐하는 건지 알아보기
+    인코딩도 IOUtils 사용하는게 좋아
+    시크릿 모드에서 테스트
+    리디렉트 할때 로그인 안됐으면 로그인 페이지로 리디렉트하기
+    */
+
     @Override
     public void run() {
 
@@ -133,7 +143,18 @@ public class RequestHandler implements Runnable{
         if(isLoggined(br)){
             processGetPageRequest(resource,dos);
         } else {
-            redirectToHome(dos);
+            redirectToLogin(dos);
+        }
+    }
+
+    private void redirectToLogin(DataOutputStream dos) {
+        try {
+            dos.writeBytes("HTTP/1.1 302 Found \r\n");
+            dos.writeBytes("Location: http://localhost:80/user/login.html\r\n");
+            dos.writeBytes("\r\n");
+            dos.flush();
+        } catch (IOException e) {
+            log.log(Level.SEVERE, e.getMessage());
         }
     }
 
