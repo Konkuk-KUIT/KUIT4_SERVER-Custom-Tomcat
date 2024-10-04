@@ -1,6 +1,7 @@
 package webserver;
 
 import db.MemoryUserRepository;
+import enumPackage.*;
 import http.util.HttpRequestUtils;
 import http.util.IOUtils;
 import model.User;
@@ -14,6 +15,13 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import static enumPackage.HttpHeader.*;
+import static enumPackage.HttpMethod.GET;
+import static enumPackage.HttpMethod.POST;
+import static enumPackage.QueryKey.*;
+import static enumPackage.Status.*;
+import static enumPackage.URL.*;
 
 public class RequestHandler implements Runnable {
     MemoryUserRepository userRepository;
@@ -43,55 +51,55 @@ public class RequestHandler implements Runnable {
 
             log.log(Level.INFO, "Request URI: " + httpMethod + requestURI);
 
-            if (Objects.equals(httpMethod, "GET")) {
+            //왜 그냥 GET이라고 쓰면 안되는걸까
+            if (Objects.equals(httpMethod, GET.getMethod())) {
                 if (requestURI.contains("?")) {
                     //signup part
                     String[] query = requestURI.split("\\?");
                     String userInformation = query[1];
                     getUserInformation(userInformation);
 
-                    response302Header(dos, "../index.html");
+                    //..
+                    response302Header(dos, INDEX_URL.getUrl());
                 }
 
-                if (Objects.equals(requestURI, "/") || Objects.equals(requestURI, "/index.html")) {
+                if (Objects.equals(requestURI, "/") || Objects.equals(requestURI, INDEX_URL.getUrl())) {
                     // 그냥 "/" 로 들어오면 안되니까
-                    requestURI="/index.html";
+                    requestURI=INDEX_URL.getUrl();
                     normalResponse(dos,requestURI);
-                } else if (Objects.equals(requestURI, "/user/form.html")) {
+                } else if (Objects.equals(requestURI, FORM_URL.getUrl())) {
                     normalResponse(dos,requestURI);
-                } else if( Objects.equals(requestURI, "/user/login.html")) {
+                } else if( Objects.equals(requestURI, LOGIN_URL.getUrl())) {
                     normalResponse(dos,requestURI);
-                }else if( Objects.equals(requestURI, "/user/login_failed.html")) {
+                }else if( Objects.equals(requestURI, LOGIN_FAILED_URL.getUrl())) {
                     normalResponse(dos,requestURI);
-                }else if(Objects.equals(requestURI, "/user/userList")||Objects.equals(requestURI, "/user/list.html")){
+                }else if(Objects.equals(requestURI, USER_LIST_URL.getUrl())||Objects.equals(requestURI, LIST_URL.getUrl())){
 
                     //todo: 왜 /user/userList가 존재하는지는 잘... 프론트 오류?
                     if(checkCookie(br)){
-                        normalResponse(dos,"/user/list.html");
+                        normalResponse(dos,LIST_URL.getUrl());
                     }else{
-                        response302Header(dos,"/user/login.html");
+                        response302Header(dos,LOGIN_URL.getUrl());
                     }
 
                 } else if(requestURI.endsWith("css")){
-                    byte[] body = Files.readAllBytes(Paths.get("webapp", requestURI));
+                    byte[] body = Files.readAllBytes(Paths.get(WEB_APP.getUrl(), requestURI));
                     response200CssHeader(dos, body.length);
                     responseBody(dos, body);
                 }
 
-            } else if (Objects.equals(requestURI, "/user/login")&&Objects.equals(httpMethod, "POST")) {
+            } else if (Objects.equals(requestURI, LOGIN_URL.getUrl())&&Objects.equals(httpMethod, POST.getMethod())) {
                 int requestContentLength = readContentLength(br);
                 String postDataInformation = IOUtils.readData(br, requestContentLength);
                 Map<String, String> signupUserInformationMap = HttpRequestUtils.parseQueryParameter(postDataInformation);
-                String userId = signupUserInformationMap.get("userId");
-
+                String userId = signupUserInformationMap.get(USER_ID.getKey());
                 checkUserInRepository(dos,userId);
 
-            } else if (Objects.equals(httpMethod, "POST")) {
+            } else if (Objects.equals(httpMethod, POST.toString())) {
                 int requestContentLength = readContentLength(br);
                 String postDataInformation = IOUtils.readData(br, requestContentLength);
                 getUserInformation(postDataInformation);
-
-                response302Header(dos, "../index.html");
+                response302Header(dos, INDEX_URL.getUrl());
 
             }
 
@@ -138,7 +146,7 @@ public class RequestHandler implements Runnable {
     }
 
     private void normalResponse(DataOutputStream dos,String requestURI) throws IOException {
-        byte[] body = Files.readAllBytes(Paths.get("webapp", requestURI));
+        byte[] body = Files.readAllBytes(Paths.get(WEB_APP.getUrl(), requestURI));
         response200Header(dos, body.length);
         responseBody(dos, body);
 
@@ -146,19 +154,19 @@ public class RequestHandler implements Runnable {
 
     private void checkUserInRepository(DataOutputStream dos,String userId) {
         if(userRepository.findUserById(userId)==null){
-            response302Header(dos,"/user/login_failed.html");
+            response302Header(dos, LOGIN_FAILED_URL.getUrl());
         }else{
-            response302HeaderAddCookie(dos,"../index.html");
+            //..
+            response302HeaderAddCookie(dos,INDEX_URL.getUrl());
         }
     }
 
     private void getUserInformation(String userInformation) {
         Map<String, String> userInformationMap = HttpRequestUtils.parseQueryParameter(userInformation);
-        String userId = userInformationMap.get("userId");
-        String password = userInformationMap.get("password");
-        String name = userInformationMap.get("name");
-        String email = userInformationMap.get("email");
-
+        String userId = userInformationMap.get(USER_ID.getKey());
+        String password = userInformationMap.get(PASSWORD.getKey());
+        String name = userInformationMap.get(NAME.getKey());
+        String email = userInformationMap.get(EMAIL.getKey());
         makeNewUser(userId, password, name, email);
 
     }
@@ -183,9 +191,9 @@ public class RequestHandler implements Runnable {
 
     private void response200Header(DataOutputStream dos, int lengthOfBodyContent) {
         try {
-            dos.writeBytes("HTTP/1.1 200 OK \r\n");
-            dos.writeBytes("Content-Type: text/html;charset=utf-8\r\n");
-            dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
+            dos.writeBytes(HTTP_VERSION.getHeader()+" "+ STATUS200.getStatus()+" "+OK.getStatus()+"\r\n");
+            dos.writeBytes( CONTENT_TYPE+": "+TEXT_HTML+"\r\n");
+            dos.writeBytes( CONTENT_LENGTH+": "+ lengthOfBodyContent + "\r\n");
             dos.writeBytes("\r\n");
         } catch (IOException e) {
             log.log(Level.SEVERE, e.getMessage());
@@ -193,9 +201,10 @@ public class RequestHandler implements Runnable {
     }
     private void response200CssHeader(DataOutputStream dos, int lengthOfBodyContent) {
         try {
-            dos.writeBytes("HTTP/1.1 200 OK \r\n");
-            dos.writeBytes("Content-Type: text/css;charset=utf-8\r\n"); // CSS 응답을 위한 Content-Type
-            dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
+
+            dos.writeBytes(HTTP_VERSION.getHeader()+" "+ STATUS200.getStatus()+" "+OK.getStatus()+"\r\n");
+            dos.writeBytes( CONTENT_TYPE.getHeader()+": "+TEXT_CSS.getHeader()+"\r\n");
+            dos.writeBytes( CONTENT_LENGTH.getHeader()+": "+ lengthOfBodyContent + "\r\n");
             dos.writeBytes("\r\n");
         } catch (IOException e) {
             log.log(Level.SEVERE, e.getMessage());
@@ -205,9 +214,10 @@ public class RequestHandler implements Runnable {
 
     private void response302Header(DataOutputStream dos, String location) {
         try {
-            dos.writeBytes("HTTP/1.1 302 Found \r\n");
-            dos.writeBytes("Location: " + location + " \r\n");
+            dos.writeBytes(HTTP_VERSION.getHeader()+" "+ STATUS302.getStatus()+" "+FOUND.getStatus()+" \r\n");
+            dos.writeBytes( LOCATION.getHeader() +": " + location + " \r\n");
             dos.writeBytes("\r\n");
+
             dos.flush();
         } catch (IOException e) {
             log.log(Level.SEVERE, e.getMessage());
@@ -215,9 +225,10 @@ public class RequestHandler implements Runnable {
     }
     private void response302HeaderAddCookie(DataOutputStream dos, String location) {
         try {
-            dos.writeBytes("HTTP/1.1 302 Found \r\n");
-            dos.writeBytes("Location: " + location + " \r\n");
-            dos.writeBytes("Set-Cookie: logined=true\r\n");  // 여기서 쿠키 추가
+            dos.writeBytes(HTTP_VERSION.getHeader()+" "+ STATUS302.getStatus()+" "+FOUND.getStatus()+" \r\n");
+            dos.writeBytes( LOCATION.getHeader() +": " + location + " \r\n");
+            dos.writeBytes( SET_COOKIE.getHeader() +": " +"logined=true\r\n");
+
             dos.writeBytes("\r\n");
             dos.flush();
         } catch (IOException e) {
