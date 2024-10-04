@@ -50,26 +50,30 @@ public class RequestHandler implements Runnable{
                 handleFileResponse(dos, WEB_ROOT + "/index.html");
             }
             // 요구사항 2 - 회원가입 form
-            else if (isSignUpUserFormRequest(requestPath)) {
+            if (isSignUpUserFormRequest(requestPath)) {
                 handleFileResponse(dos, WEB_ROOT + "/user/form.html");
             }
             // 요구사항 2 - 회원가입 GET
-            else if (isUserSignUpRequest(requestPath)) {
+            if (isUserSignUpRequest(requestPath)) {
                 handleGetSignUpRequest(requestPath, dos);
             }
             // 요구사항 5 - 로그인 form
-            else if (isLoginUserFormRequest(requestPath)) {
+            if (isLoginUserFormRequest(requestPath)) {
                 handleFileResponse(dos, WEB_ROOT + "/user/login.html");
+            }
+            // 요구사항 6 - user list 보기
+            if (isUserListRequest(requestPath)) {
+                handleUserListRequest(br, dos);
             }
         }
 
-        else if (method.equals("POST")) {
+        if (method.equals("POST")) {
             // 요구사항 3 - 회원가입 POST
             if (isUserSignUpRequest(requestPath)) {
                 handlePostSignUpRequest(br, dos);
             }
             // 요구사항 5 - 로그인 처리 POST
-            else if (isUserLoginRequest(requestPath)) {
+            if (isUserLoginRequest(requestPath)) {
                 handlePostLoginRequest(br, dos);
             }
         }
@@ -93,6 +97,10 @@ public class RequestHandler implements Runnable{
 
     private boolean isUserLoginRequest(String requestPath) {
         return requestPath.equals("/user/login");
+    }
+
+    private boolean isUserListRequest(String requestPath) {
+        return requestPath.equals("/user/userList");
     }
 
     private void handleFileResponse(DataOutputStream dos, String filePath) {
@@ -182,6 +190,25 @@ public class RequestHandler implements Runnable{
         queryParameter.forEach((key, value) -> log.log(Level.INFO, key + "=" + value));
         log.log(Level.INFO, "user: " + user);
         log.log(Level.INFO, "findUser: " + userRepository.findUserById(user.getUserId()));
+    }
+
+    private void handleUserListRequest(BufferedReader br, DataOutputStream dos) throws IOException {
+        String cookie = getCookie(br);
+        if (cookie != null && cookie.contains("logined=true")) {
+            handleFileResponse(dos, WEB_ROOT + "/user/list.html");
+        } else {
+            response302Header(dos, "/user/login.html");
+        }
+    }
+
+    private String getCookie(BufferedReader br) throws IOException {
+        String line;
+        while (!(line = br.readLine()).equals("")) {
+            if (line.startsWith("Cookie")) {
+                return line.substring("Cookie: ".length());
+            }
+        }
+        return null;
     }
 
     private byte[] readFile(String filePath) {
