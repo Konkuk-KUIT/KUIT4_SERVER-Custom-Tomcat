@@ -17,4 +17,17 @@ public class HttpRequestUtils {
             return new HashMap<>();
         }
     }
+
+    // 쿠키 파싱 메서드
+    public static Map<String, String> parseCookies(String cookieHeader) {
+        Map<String, String> cookies = new HashMap<>();
+        String[] pairs = cookieHeader.split("; ");
+        for (String pair : pairs) {
+            String[] keyValue = pair.split("=");
+            if (keyValue.length == 2) {
+                cookies.put(keyValue[0], keyValue[1]);
+            }
+        }
+        return cookies;
+    }
 }
