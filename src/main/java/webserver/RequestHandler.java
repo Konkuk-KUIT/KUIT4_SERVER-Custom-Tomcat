@@ -1,12 +1,9 @@
 package webserver;
 
 import db.MemoryUserRepository;
-import http.HttpHeader;
-import http.HttpStatusCode;
-import http.Url;
+import http.request.HttpRequest;
 import http.util.HttpRequestUtils;
 import model.User;
-import model.UserQueryKey;
 
 import java.io.*;
 import java.net.Socket;
@@ -38,14 +35,9 @@ public class RequestHandler implements Runnable {
             BufferedReader br = new BufferedReader(new InputStreamReader(in));
             DataOutputStream dos = new DataOutputStream(out);
 
-            String line = br.readLine();
-            if (line == null) {
-                return;
-            }
+            HttpRequest httpRequest = HttpRequest.from(br);
 
-            String[] tokens = line.split(" ");
-            String url = tokens[1];
-
+            String url = httpRequest.getPath();
             byte[] body;
 
             // /index.html 요청 처리
@@ -66,7 +58,7 @@ public class RequestHandler implements Runnable {
 
             // /user/signup 요청 처리
             if (url.startsWith(USER_SIGNUP.getUrl())) {
-                handlePostSignUp(br, dos);
+                handlePostSignUp(httpRequest, dos);
                 return;
             }
 
@@ -80,7 +72,7 @@ public class RequestHandler implements Runnable {
 
             // /user/login 요청 처리
             if (USER_LOGIN.getUrl().equals(url)) {
-                handleLogin(br, dos);
+                handleLogin(httpRequest, dos);
                 return;
             }
 
@@ -95,7 +87,7 @@ public class RequestHandler implements Runnable {
             // /user/userList, /user/list.html 요청 처리
             // home에서는 /user/userList, 그 외에는 /user/list.html
             if (USER_LIST.getUrl().equals(url) || USER_LIST_HTML.getUrl().equals(url)) {
-                String cookie = getCookie(br);
+                String cookie = httpRequest.getHeader(COOKIE.getValue());
 
                 if (LOGINED_TRUE.getValue().equals(cookie)) {
                     body = Files.readAllBytes(Paths.get(WEBAPP.getUrl() + USER_LIST_HTML.getUrl()));
@@ -128,25 +120,8 @@ public class RequestHandler implements Runnable {
     }
 
     // 로그인 처리
-    private void handleLogin(BufferedReader br, DataOutputStream dos) throws IOException {
-        int requestContentLength = 0;
-
-        while (true) {
-            final String line = br.readLine();
-            if (line.equals("")) {
-                break;
-            }
-            // header info
-            if (line.startsWith(CONTENT_LENGTH.getValue())) {
-                requestContentLength = Integer.parseInt(line.split(": ")[1]);
-            }
-        }
-
-        // request body 읽기
-        char[] bodyData = new char[requestContentLength];
-        br.read(bodyData, 0, requestContentLength);
-        String body = new String(bodyData);
-
+    private void handleLogin(HttpRequest httpRequest, DataOutputStream dos) throws IOException {
+        String body = httpRequest.getBody();
         Map<String, String> params = HttpRequestUtils.parseQueryParameter(body);
 
         String userId = params.get(USER_ID.getKey());
@@ -168,25 +143,8 @@ public class RequestHandler implements Runnable {
     }
 
     // POST 방식 회원가입 처리
-    private void handlePostSignUp(BufferedReader br, DataOutputStream dos) throws IOException {
-        int requestContentLength = 0;
-
-        while (true) {
-            final String line = br.readLine();
-            if (line.equals("")) {
-                break;
-            }
-            // header info
-            if (line.startsWith(CONTENT_LENGTH.getValue())) {
-                requestContentLength = Integer.parseInt(line.split(": ")[1]);
-            }
-        }
-
-        // request body 읽기
-        char[] bodyData = new char[requestContentLength];
-        br.read(bodyData, 0, requestContentLength);
-        String body = new String(bodyData);
-
+    private void handlePostSignUp(HttpRequest httpRequest, DataOutputStream dos) throws IOException {
+        String body = httpRequest.getBody();
         Map<String, String> params = HttpRequestUtils.parseQueryParameter(body);
 
         User user = new User(params.get(USER_ID.getKey()), params.get(PASSWORD.getKey()), params.get(NAME.getKey()), params.get(EMAIL.getKey()));
