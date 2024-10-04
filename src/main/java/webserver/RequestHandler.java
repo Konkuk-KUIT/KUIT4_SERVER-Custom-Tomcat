@@ -1,6 +1,9 @@
 package webserver;
 
+import controller.*;
 import db.MemoryUserRepository;
+import http.HttpMethod;
+import http.Url;
 import http.request.HttpRequest;
 import http.response.HttpResponse;
 import http.util.HttpRequestUtils;
@@ -8,11 +11,13 @@ import model.User;
 
 import java.io.*;
 import java.net.Socket;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static http.HttpHeader.*;
+import static http.HttpMethod.*;
 import static http.Url.*;
 import static model.UserQueryKey.*;
 
@@ -20,10 +25,11 @@ public class RequestHandler implements Runnable {
     Socket connection;
     private static final Logger log = Logger.getLogger(RequestHandler.class.getName());
 
-    private final MemoryUserRepository memoryUserRepository = MemoryUserRepository.getInstance();
+    private Controller controller;
 
     public RequestHandler(Socket connection) {
         this.connection = connection;
+        MemoryUserRepository repository = MemoryUserRepository.getInstance();
     }
 
     @Override
@@ -33,107 +39,38 @@ public class RequestHandler implements Runnable {
             BufferedReader br = new BufferedReader(new InputStreamReader(in));
             DataOutputStream dos = new DataOutputStream(out);
 
+            // HttpRequest, HttpResponse 생성
             HttpRequest httpRequest = HttpRequest.from(br);
-            String url = httpRequest.getPath();
+            HttpResponse httpResponse = new HttpResponse(dos);
 
-            HttpResponse httpResponse = new HttpResponse(out);
-
-            // /index.html 요청 처리
-            if (ROOT.getUrl().equals(url) || INDEX.getUrl().equals(url)) {
-                httpResponse.forward( INDEX.getUrl());
-                return;
+            // 요구 사항 1번
+            if (httpRequest.getMethod().equals(GET.getMethod()) && httpRequest.getPath().endsWith(HTML_EXTENSION.getUrl())) {
+                controller = new ForwardController();
             }
 
-            // /user/form.html 요청 처리
-            if (USER_FORM.getUrl().equals(url)) {
-                httpResponse.forward(USER_FORM.getUrl());
-                return;
+            if (httpRequest.getPath().equals(ROOT.getUrl())) {
+                controller = new HomeController();
             }
 
-            // /user/signup 요청 처리
-            if (url.startsWith(USER_SIGNUP.getUrl())) {
-                handlePostSignUp(httpRequest, httpResponse);
-                return;
+            // 요구 사항 2,3,4번
+            if (httpRequest.getPath().equals(USER_SIGNUP.getUrl())) {
+                controller = new SignUpController();
             }
 
-            // /user/login.html 요청 처리
-            if (USER_LOGIN_HTML.getUrl().equals(url)) {
-                httpResponse.forward(USER_LOGIN_HTML.getUrl());
-                return;
+            // 요구 사항 5번
+            if (httpRequest.getPath().equals(USER_LOGIN.getUrl())) {
+                controller = new LoginController();
             }
 
-            // /user/login 요청 처리
-            if (USER_LOGIN.getUrl().equals(url)) {
-                handleLogin(httpRequest, httpResponse);
-                return;
+            // 요구 사항 6번
+            if (httpRequest.getPath().equals(USER_LIST.getUrl())) {
+                controller = new ListController();
             }
-
-            // /user/login_failed.html 요청 처리
-            if (USER_LOGIN_FAILED.getUrl().equals(url)) {
-                httpResponse.forward(USER_LOGIN_FAILED.getUrl());
-                return;
-            }
-
-            // /user/userList, /user/list.html 요청 처리
-            // home에서는 /user/userList, 그 외에는 /user/list.html
-            if (USER_LIST.getUrl().equals(url) || USER_LIST_HTML.getUrl().equals(url)) {
-                String cookie = httpRequest.getHeader(COOKIE.getValue());
-
-                if (LOGINED_TRUE.getValue().equals(cookie)) {
-                    httpResponse.forward(USER_LIST_HTML.getUrl());
-                    return;
-                }
-
-                // 로그인되지 않은 경우 로그인 페이지로 리다이렉트
-                httpResponse.redirect(USER_LOGIN_HTML.getUrl(), null);
-                return;
-            }
-
-            // css 파일 요청 처리
-            if (url.endsWith(CSS_EXTENSION.getUrl())) {
-                httpResponse.forward(url);
-                return;
-            }
+            controller.execute(httpRequest, httpResponse);
 
         } catch (IOException e) {
             log.log(Level.SEVERE, e.getMessage());
         }
-    }
-
-    // 로그인 처리
-    private void handleLogin(HttpRequest httpRequest, HttpResponse httpResponse) throws IOException {
-        String body = httpRequest.getBody();
-        Map<String, String> params = HttpRequestUtils.parseQueryParameter(body);
-
-        String userId = params.get(USER_ID.getKey());
-        String password = params.get(PASSWORD.getKey());
-
-        if (userId == null || password == null) {
-            // 로그인이 잘못되었을 때 에러 처리
-            httpResponse.redirect(USER_LOGIN_FAILED.getUrl(), LOGINED_FALSE.getValue());
-            return;
-        }
-
-        User user = memoryUserRepository.findUserById(userId);
-
-        if (user != null && user.getPassword().equals(password)) {
-            httpResponse.redirect(INDEX.getUrl(), LOGINED_TRUE.getValue());
-        } else {
-            httpResponse.redirect(USER_LOGIN_FAILED.getUrl(), LOGINED_FALSE.getValue());
-        }
-    }
-
-    // POST 방식 회원가입 처리
-    private void handlePostSignUp(HttpRequest httpRequest, HttpResponse httpResponse) throws IOException {
-        String body = httpRequest.getBody();
-        Map<String, String> params = HttpRequestUtils.parseQueryParameter(body);
-
-        User user = new User(params.get(USER_ID.getKey()), params.get(PASSWORD.getKey()), params.get(NAME.getKey()), params.get(EMAIL.getKey()));
-
-        memoryUserRepository.addUser(user);
-
-        // 302 리다이렉트 응답
-        httpResponse.redirect(INDEX.getUrl(), null);
     }
 
 }
