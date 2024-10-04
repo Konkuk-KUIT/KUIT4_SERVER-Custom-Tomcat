@@ -35,12 +35,11 @@ public class RequestHandler implements Runnable {
             BufferedReader br = new BufferedReader(new InputStreamReader(in));
             DataOutputStream dos = new DataOutputStream(out);
 
-            String requestLine = br.readLine(); // 요청의 첫 번째 줄을 읽음
 
-            log.log(Level.INFO, "Received Request: " + requestLine);
-            String[] requestParts = requestLine.split(" ");
-            String httpMethod = requestParts[0]; //GET POST 등등
-            String requestURI = requestParts[1]; // 요청 URI
+            String requestLine = br.readLine(); // 요청의 첫 번째 줄을 읽음
+            String httpMethod = getHttpMethod(requestLine);
+            String requestURI = getRequestURI(requestLine);
+
 
             log.log(Level.INFO, "Request URI: " + httpMethod + requestURI);
 
@@ -48,94 +47,28 @@ public class RequestHandler implements Runnable {
                 if (requestURI.contains("?")) {
                     //signup part
                     String[] query = requestURI.split("\\?");
-                    String userInformation = query[1];//뒤에 부분임
-                    Map<String, String> userInformationMap = HttpRequestUtils.parseQueryParameter(userInformation);
-                    //todo; 디코딩 여부
-                    String userId = userInformationMap.get("userId");
-                    String password = userInformationMap.get("password");
-                    String name = userInformationMap.get("name");
-                    String email = userInformationMap.get("email");
+                    String userInformation = query[1];
+                    getUserInformation(userInformation);
 
-                    log.log(Level.INFO, "UserInfo: " + userId + password + name + email);
-                    User user = new User(userId, password, name, email);
-                    userRepository.addUser(user);
                     response302Header(dos, "../index.html");
                 }
 
                 if (Objects.equals(requestURI, "/") || Objects.equals(requestURI, "/index.html")) {
-                    //main 화면 파트
-                    byte[] body = Files.readAllBytes(Paths.get("webapp", "index.html")); // index.html 파일 읽기
-                    response200Header(dos, body.length);
-                    responseBody(dos, body);
-
+                    // 그냥 "/" 로 들어오면 안되니까
+                    requestURI="/index.html";
+                    normalResponse(dos,requestURI);
                 } else if (Objects.equals(requestURI, "/user/form.html")) {
-                    //user form 기입 화면
-                    byte[] body = Files.readAllBytes(Paths.get("webapp"+ requestURI)); // index.html 파일 읽기
-                    response200Header(dos, body.length);
-                    responseBody(dos, body);
+                    normalResponse(dos,requestURI);
                 } else if( Objects.equals(requestURI, "/user/login.html")) {
-                    byte[] body = Files.readAllBytes(Paths.get("webapp"+ requestURI));
-                    response200Header(dos, body.length);
-                    responseBody(dos, body);
+                    normalResponse(dos,requestURI);
                 }else if( Objects.equals(requestURI, "/user/login_failed.html")) {
-                    byte[] body = Files.readAllBytes(Paths.get("webapp"+requestURI));
-                    response200Header(dos, body.length);
-                    responseBody(dos, body);
-                }else if(Objects.equals(requestURI, "/user/userList")){
-                    //todo: 쿠키 존재 여부 확인해서 있다면, 유저리스트 없다면 login 화면으로 리다이렉트 하기
-                   String cookieHeader = null;
-                    while (true) {
-                        String line = br.readLine();
-                        if (line.equals("")) {
-                            break;
-                        }
-                        if (line.startsWith("Cookie:")) {
-                            cookieHeader = line;
-                        }
-                    }
-                    boolean isLogined = false;
-                    if (cookieHeader != null) {
-                        Map<String, String> cookies = HttpRequestUtils.parseCookies(cookieHeader.split(": ")[1]);
-                        isLogined = "true".equals(cookies.get("logined"));
-                    }//쿠키확인
+                    normalResponse(dos,requestURI);
+                }else if(Objects.equals(requestURI, "/user/userList")||Objects.equals(requestURI, "/user/list.html")){
 
-                    if(isLogined){
-                        byte[] body = Files.readAllBytes(Paths.get("webapp", "user/list.html"));
-                        response200Header(dos, body.length);
-                        responseBody(dos, body);
-
+                    //todo: 왜 /user/userList가 존재하는지는 잘... 프론트 오류?
+                    if(checkCookie(br)){
+                        normalResponse(dos,"/user/list.html");
                     }else{
-                        //쿠키 존재하지 않음
-
-                        response302Header(dos,"/user/login.html");
-                    }
-
-
-                }else if(Objects.equals(requestURI, "/user/list.html")){
-                    //todo: 쿠키 존재 여부 확인해서 있다면, 유저리스트 없다면 login 화면으로 리다이렉트 하기
-                    String cookieHeader = null;
-                    while (true) {
-                        String line = br.readLine();
-                        if (line.equals("")) {
-                            break;
-                        }
-                        if (line.startsWith("Cookie:")) {
-                            cookieHeader = line;
-                        }
-                    }
-                    boolean isLogined = false;
-                    if (cookieHeader != null) {
-                        Map<String, String> cookies = HttpRequestUtils.parseCookies(cookieHeader.split(": ")[1]);
-                        isLogined = "true".equals(cookies.get("logined"));
-                    }//쿠키확인
-
-                    if(isLogined){
-                        //쿠키 존재
-                        byte[] body = Files.readAllBytes(Paths.get("webapp", "user/list.html"));
-                        response200Header(dos, body.length);
-                        responseBody(dos, body);
-                    }else{
-                        //쿠키 존재하지 않음
                         response302Header(dos,"/user/login.html");
                     }
 
@@ -143,62 +76,21 @@ public class RequestHandler implements Runnable {
                     byte[] body = Files.readAllBytes(Paths.get("webapp", requestURI));
                     response200CssHeader(dos, body.length);
                     responseBody(dos, body);
-
                 }
 
             } else if (Objects.equals(requestURI, "/user/login")&&Objects.equals(httpMethod, "POST")) {
-                int requestContentLength = 0;
-                while (true) {
-                    final String line = br.readLine();
-                    if (line.equals("")) {
-                        break;
-                    }
-                    // header info
-                    if (line.startsWith("Content-Length")) {
-                        requestContentLength = Integer.parseInt(line.split(": ")[1]);
-                    }
-                }
+                int requestContentLength = readContentLength(br);
                 String postDataInformation = IOUtils.readData(br, requestContentLength);
                 Map<String, String> signupUserInformationMap = HttpRequestUtils.parseQueryParameter(postDataInformation);
-
                 String userId = signupUserInformationMap.get("userId");
-                String password = signupUserInformationMap.get("password");
-                String name = signupUserInformationMap.get("name");
-                String email = signupUserInformationMap.get("email");
 
-                if(userRepository.findUserById(userId)==null){
-                    response302Header(dos,"/user/login_failed.html");
-                }else{
-                    response302HeaderAddCookie(dos,"../index.html");
-                }
+                checkUserInRepository(dos,userId);
 
             } else if (Objects.equals(httpMethod, "POST")) {
-                log.log(Level.INFO, "UserInfo: " + requestURI);
-                //여기까지 잘 와짐
-                int requestContentLength = 0;
-                while (true) {
-                    final String line = br.readLine();
-                    if (line.equals("")) {
-                        break;
-                    }
-                    // header info
-                    if (line.startsWith("Content-Length")) {
-                        requestContentLength = Integer.parseInt(line.split(": ")[1]);
-                    }
-                }
+                int requestContentLength = readContentLength(br);
                 String postDataInformation = IOUtils.readData(br, requestContentLength);
-                Map<String, String> signupUserInformationMap = HttpRequestUtils.parseQueryParameter(postDataInformation);
+                getUserInformation(postDataInformation);
 
-                String userId = signupUserInformationMap.get("userId");
-                String password = signupUserInformationMap.get("password");
-                String name = signupUserInformationMap.get("name");
-                String email = signupUserInformationMap.get("email");
-
-                log.log(Level.INFO, "postDataInformation: " + postDataInformation);
-                User user = new User(userId, password, name, email);
-                userRepository.addUser(user);
-
-                log.log(Level.INFO, "findUser: " + userRepository.findUserById(userId));
                 response302Header(dos, "../index.html");
 
             }
@@ -207,6 +99,86 @@ public class RequestHandler implements Runnable {
             log.log(Level.SEVERE, e.getMessage());
         }
 
+    }
+
+    private int readContentLength(BufferedReader br) throws IOException {
+        int requestContentLength = 0;
+        while (true) {
+            final String line = br.readLine();
+            if (line.equals("")) {
+                break;
+            }
+            // header info
+            if (line.startsWith("Content-Length")) {
+                requestContentLength = Integer.parseInt(line.split(": ")[1]);
+            }
+        }
+        return requestContentLength;
+    }
+
+    private boolean checkCookie(BufferedReader br) throws IOException {
+        String cookieHeader = null;
+        while (true) {
+            String line = br.readLine();
+            if (line.equals("")) {
+                break;
+            }
+            if (line.startsWith("Cookie:")) {
+                cookieHeader = line;
+            }
+        }
+
+        boolean isLogined = false;
+        if (cookieHeader != null) {
+            Map<String, String> cookies = HttpRequestUtils.parseCookies(cookieHeader.split(": ")[1]);
+            isLogined = "true".equals(cookies.get("logined"));
+        }//쿠키확인
+        return isLogined;
+
+    }
+
+    private void normalResponse(DataOutputStream dos,String requestURI) throws IOException {
+        byte[] body = Files.readAllBytes(Paths.get("webapp", requestURI));
+        response200Header(dos, body.length);
+        responseBody(dos, body);
+
+    }
+
+    private void checkUserInRepository(DataOutputStream dos,String userId) {
+        if(userRepository.findUserById(userId)==null){
+            response302Header(dos,"/user/login_failed.html");
+        }else{
+            response302HeaderAddCookie(dos,"../index.html");
+        }
+    }
+
+    private void getUserInformation(String userInformation) {
+        Map<String, String> userInformationMap = HttpRequestUtils.parseQueryParameter(userInformation);
+        String userId = userInformationMap.get("userId");
+        String password = userInformationMap.get("password");
+        String name = userInformationMap.get("name");
+        String email = userInformationMap.get("email");
+
+        makeNewUser(userId, password, name, email);
+
+    }
+
+    private void makeNewUser(String userId, String password, String name, String email) {
+        User user = new User(userId, password, name, email);
+        userRepository.addUser(user);
+    }
+
+    private String getRequestURI(String line) throws IOException {
+        String[] requestParts=splitLine(line);
+        return requestParts[1];
+    }
+
+    private String getHttpMethod(String line) throws IOException {
+        String[] requestParts=splitLine(line);
+        return requestParts[0];
+    }
+    private String[] splitLine(String requestLine){
+        return requestLine.split(" ");
     }
 
     private void response200Header(DataOutputStream dos, int lengthOfBodyContent) {
