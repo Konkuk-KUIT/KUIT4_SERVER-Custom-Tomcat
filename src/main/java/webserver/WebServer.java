@@ -8,6 +8,8 @@ import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
 public class WebServer {
+
+    //기본 포트번호 80, localhost:80
     private static final int DEFAULT_PORT = 80;
     private static final int DEFAULT_THREAD_NUM = 50;
     private static final Logger log = Logger.getLogger(WebServer.class.getName());
@@ -30,6 +32,5 @@ public class WebServer {
                 service.submit(new RequestHandler(connection));
             }
         }
-
     }
 }
