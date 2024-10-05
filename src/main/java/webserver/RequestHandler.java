@@ -1,5 +1,8 @@
 package webserver;
 
+import http.request.HttpRequest;
+import http.response.HttpResponse;
+
 import java.io.*;
 import java.net.Socket;
 import java.util.logging.Level;
@@ -17,36 +20,22 @@ public class RequestHandler implements Runnable{
     public void run() {
         log.log(Level.INFO, "New Client Connect! Connected IP : " + connection.getInetAddress() + ", Port : " + connection.getPort());
         try (InputStream in = connection.getInputStream(); OutputStream out = connection.getOutputStream()){
+            //클라이언트의 요청 메시지
             BufferedReader br = new BufferedReader(new InputStreamReader(in));
+
+            //응답 메시지
             DataOutputStream dos = new DataOutputStream(out);
 
-            byte[] body = "Hello World".getBytes();
-            response200Header(dos, body.length);
-            responseBody(dos, body);
+            HttpRequest httpRequest = HttpRequest.from(br);
+            HttpResponse httpResponse = new HttpResponse(dos, log);
+
+            RequestMapper requestMapper = new RequestMapper(httpRequest, httpResponse);
+            requestMapper.proceed();
 
         } catch (IOException e) {
             log.log(Level.SEVERE,e.getMessage());
         }
     }
 
-    private void response200Header(DataOutputStream dos, int lengthOfBodyContent) {
-        try {
-            dos.writeBytes("HTTP/1.1 200 OK \r\n");
-            dos.writeBytes("Content-Type: text/html;charset=utf-8\r\n");
-            dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
-            dos.writeBytes("\r\n");
-        } catch (IOException e) {
-            log.log(Level.SEVERE, e.getMessage());
-        }
-    }
-
-    private void responseBody(DataOutputStream dos, byte[] body) {
-        try {
-            dos.write(body, 0, body.length);
-            dos.flush();
-        } catch (IOException e) {
-            log.log(Level.SEVERE, e.getMessage());
-        }
-    }
 
 }
