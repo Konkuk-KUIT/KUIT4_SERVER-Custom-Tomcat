@@ -61,7 +61,7 @@ a {
 
 .btn i,.btn span{
     color:#666666;
-}   
+}
 
 /* .qna-list .list .reply {
     position:absolute;left:0;top:.8em;width:4em;text-align:center;
@@ -170,21 +170,21 @@ a {
     padding: 30px;
     margin: auto;
   }
-  
+
   .form-signin .checkbox {
     font-weight: 400;
   }
-  
+
   .form-signin .form-floating:focus-within {
     z-index: 2;
   }
-  
+
   .form-signin input[type="email"] {
     margin-bottom: -1px;
     border-bottom-right-radius: 0;
     border-bottom-left-radius: 0;
   }
-  
+
   .form-signin input[type="password"] {
     margin-bottom: 10px;
     border-top-left-radius: 0;
