@@ -1,13 +1,22 @@
 package webserver;
 
+import Controller.*;
+import http.util.HttpRequest;
+import http.util.HttpResponse;
+
 import java.io.*;
 import java.net.Socket;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class RequestHandler implements Runnable{
+import static enumClass.Url.*;
+import static enumClass.HttpMethod.*;
+
+public class RequestHandler implements Runnable {
     Socket connection;
     private static final Logger log = Logger.getLogger(RequestHandler.class.getName());
+
+    private Controller controller = new ForwardController();
 
     public RequestHandler(Socket connection) {
         this.connection = connection;
@@ -16,37 +25,34 @@ public class RequestHandler implements Runnable{
     @Override
     public void run() {
         log.log(Level.INFO, "New Client Connect! Connected IP : " + connection.getInetAddress() + ", Port : " + connection.getPort());
-        try (InputStream in = connection.getInputStream(); OutputStream out = connection.getOutputStream()){
-            BufferedReader br = new BufferedReader(new InputStreamReader(in));
+        try (InputStream in = connection.getInputStream(); OutputStream out = connection.getOutputStream()) {
+            BufferedReader br = new BufferedReader(new InputStreamReader(in, "UTF-8"));
             DataOutputStream dos = new DataOutputStream(out);
 
-            byte[] body = "Hello World".getBytes();
-            response200Header(dos, body.length);
-            responseBody(dos, body);
+            HttpRequest httpRequest = HttpRequest.from(br);
+            HttpResponse httpResponse = new HttpResponse(dos);
 
-        } catch (IOException e) {
-            log.log(Level.SEVERE,e.getMessage());
-        }
-    }
+            String path = httpRequest.getPath();
 
-    private void response200Header(DataOutputStream dos, int lengthOfBodyContent) {
-        try {
-            dos.writeBytes("HTTP/1.1 200 OK \r\n");
-            dos.writeBytes("Content-Type: text/html;charset=utf-8\r\n");
-            dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
-            dos.writeBytes("\r\n");
-        } catch (IOException e) {
+            // Decide the controller based on path
+            if (httpRequest.isMethod(GET) && path.endsWith(".html")) {
+                controller = new ForwardController();
+            } else if (path.equals(ROOT.getValue())) {
+                controller = new HomeController();
+            } else if (path.equals(USER_SIGNUP.getValue())) {
+                controller = new SignUpController();
+            } else if (path.equals(USER_LOGIN.getValue())) {
+                controller = new LoginController();
+            } else if (path.equals(USER_USERLIST.getValue())) {
+                controller = new ListController();
+            }
+
+            // Execute the controller
+            controller.execute(httpRequest, httpResponse);
+
+        } catch (Exception e) {
             log.log(Level.SEVERE, e.getMessage());
+            e.printStackTrace();
         }
     }
-
-    private void responseBody(DataOutputStream dos, byte[] body) {
-        try {
-            dos.write(body, 0, body.length);
-            dos.flush();
-        } catch (IOException e) {
-            log.log(Level.SEVERE, e.getMessage());
-        }
-    }
-
 }

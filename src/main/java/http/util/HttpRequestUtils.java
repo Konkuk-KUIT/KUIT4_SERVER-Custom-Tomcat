@@ -17,4 +17,20 @@ public class HttpRequestUtils {
             return new HashMap<>();
         }
     }
+    public static Map<String, String> parseCookies(String cookieHeader) {
+        Map<String, String> cookies = new HashMap<>();
+
+        // "key1=value1; key2=value2" 형태의 문자열을 ";"로 분리
+        String[] pairs = cookieHeader.split(";");
+        for (String pair : pairs) {
+            String[] keyValue = pair.trim().split("=");
+            if (keyValue.length == 2) {
+                String key = keyValue[0].trim();
+                String value = keyValue[1].trim();
+                cookies.put(key, value);
+            }
+        }
+
+        return cookies;
+    }
 }
