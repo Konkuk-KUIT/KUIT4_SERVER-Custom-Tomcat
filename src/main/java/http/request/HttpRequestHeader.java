@@ -31,11 +31,6 @@ public class HttpRequestHeader {
             String key = line.split(": ")[0];
             String value = line.split(": ")[1];
 
-            if (headerMap.containsKey(key)) {
-                headerMap.replace(key, value);
-                continue;
-            }
-
             headerMap.put(key, value);
         }
     }

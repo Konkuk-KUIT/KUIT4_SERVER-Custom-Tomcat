@@ -15,7 +15,7 @@ import static constant.Url.*;
 
 public class RequestMapper {
 
-    private Map<String, Controller> controllers;
+    private static Map<String, Controller> controllers;
     private HttpRequest request;
     private HttpResponse response;
 
@@ -40,7 +40,7 @@ public class RequestMapper {
         Controller forwardController = new ForwardController();
 
         // .css 확장자로 들어오는 styles.css 파일을 인식해주기 위해 .css에 대한 코드도 추가
-        if (request.isGetMethod() && (request.endsWithHtml()) || request.endsWithCss()) {
+        if (request.isGetMethod() && (request.endsWithHtml() || request.endsWithCss())) {
             forwardController.execute(request, response);
             return;
         }

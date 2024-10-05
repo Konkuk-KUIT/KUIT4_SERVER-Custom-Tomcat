@@ -44,11 +44,18 @@ public class HttpResponse {
         // 파일 형식에 따른 헤더 삽입
         putHeader(CONTENT_TYPE.getHeaderTitle(), type+";charset=utf-8");
 
+        // startline을 outputStream에 적어주기
+        writeResponseStartLine();
+
         // 헤더들을 outputStream에 적어주기
         writeResponseHeader();
 
-        dos.write(responseBody.getBodyContent(), 0, responseBody.getBodyLength());
+        // body를 outputStream에 적어주기
+        writeResponseBody(responseBody);
+
         dos.flush();
+
+        dos.close();
     }
 
     public void redirect(String path) throws IOException {
@@ -58,6 +65,7 @@ public class HttpResponse {
         // redirect에 필요한 헤더 삽입
         putHeader(LOCATION.getHeaderTitle(), path);
 
+        writeResponseStartLine();
         writeResponseHeader();
     }
 
@@ -71,16 +79,22 @@ public class HttpResponse {
         httpResponseHeader.putHeader(key, value);
     }
 
-    private void writeResponseHeader() throws IOException {
+    private void writeResponseStartLine() throws IOException {
         // startline을 outputStream에 적어주기
         dos.writeBytes(httpResponseStartLine.getResponseStartLine());
+    }
 
+    private void writeResponseHeader() throws IOException {
         // 헤더들을 outputStream에 적어주기
         for(Map.Entry<String, String> entry : httpResponseHeader.getHeaderMap().entrySet()) {
             dos.writeBytes(entry.getKey() + ": " + entry.getValue() + "\r\n");
         }
 
         dos.writeBytes("\r\n");
+    }
+
+    private void writeResponseBody(ResponseBody body) throws IOException {
+        dos.write(body.getBodyContent(), 0, body.getBodyLength());
     }
 
 

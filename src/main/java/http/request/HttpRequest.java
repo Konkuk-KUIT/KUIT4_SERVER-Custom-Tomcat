@@ -13,22 +13,30 @@ import static constant.Url.HTML_EXTENSION;
 
 public class HttpRequest {
 
-    private HttpRequestStartLine httpRequestStartLine;
-    private HttpRequestHeader httpRequestHeader;
-    private RequestBody requestBody;
+    private static HttpRequestStartLine httpRequestStartLine;
+    private static HttpRequestHeader httpRequestHeader;
+    private static RequestBody requestBody;
 
-    private HttpRequest(BufferedReader br) throws IOException {
-        httpRequestStartLine = HttpRequestStartLine.from(br);
-        httpRequestHeader = HttpRequestHeader.from(br);
-        requestBody = RequestBody.from(br);
+    private HttpRequest(HttpRequestStartLine requestStartLine, HttpRequestHeader requestHeader, RequestBody requestBody) throws IOException {
+        this.httpRequestStartLine = requestStartLine;
+        this.httpRequestHeader = requestHeader;
+        this.requestBody = requestBody;
+    }
 
-        httpRequestHeader.parseHeader();
+    public static HttpRequest from(BufferedReader br) throws IOException {
 
-        if (httpRequestHeader.containsKey(CONTENT_LENGTH.getHeaderTitle())) {
-            requestBody.setBody(Integer.parseInt(httpRequestHeader.getValue(CONTENT_LENGTH.getHeaderTitle())));
+        HttpRequestStartLine requestStartLine = HttpRequestStartLine.from(br);
+        HttpRequestHeader requestHeader = HttpRequestHeader.from(br);
+        RequestBody requestBody = RequestBody.from(br);
+
+        requestHeader.parseHeader();
+
+        if (requestHeader.containsKey(CONTENT_LENGTH.getHeaderTitle())) {
+            requestBody.setBody(Integer.parseInt(requestHeader.getValue(CONTENT_LENGTH.getHeaderTitle())));
             requestBody.parseBody();
         }
 
+        return new HttpRequest(requestStartLine, requestHeader, requestBody);
     }
 
     // GET 요청인지 확인
@@ -51,9 +59,7 @@ public class HttpRequest {
         return httpRequestStartLine.getUrl().endsWith(CSS_EXTENSION.getUrl());
     }
 
-    public static HttpRequest from(BufferedReader br) throws IOException {
-        return new HttpRequest(br);
-    }
+
 
     public String getMethod() {
         return httpRequestStartLine.getMethod();
