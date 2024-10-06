@@ -1,5 +1,7 @@
 package http.util;
 
+import model.UserQueryKey;
+
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
