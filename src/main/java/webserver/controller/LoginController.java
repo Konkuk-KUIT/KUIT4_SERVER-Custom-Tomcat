@@ -1,18 +1,18 @@
 package webserver.controller;
 
+import db.MemoryUserRepository;
 import db.Repository;
 import model.User;
 import webserver.HttpRequest;
 import webserver.HttpResponse;
-import webserver.URLPath;
+import enums.URLPath;
 
 import java.io.IOException;
 
 
 public class LoginController implements Controller {
-    private Repository userRepository;
-    public LoginController(Repository userRepository) {
-        this.userRepository = userRepository;
+    private static Repository userRepository = MemoryUserRepository.getInstance();
+    public LoginController() {
     }
 
     @Override

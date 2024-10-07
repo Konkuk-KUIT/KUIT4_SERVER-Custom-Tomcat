@@ -1,6 +1,10 @@
 package webserver.controller;
 
+import db.MemoryUserRepository;
 import db.Repository;
+import enums.HttpMethod;
+import enums.URLPath;
+import enums.UserQueryKey;
 import model.User;
 import webserver.*;
 
@@ -8,9 +12,8 @@ import java.io.IOException;
 import java.util.HashMap;
 
 public class SignUpController implements Controller {
-    private Repository userRepository;
-    public SignUpController(Repository userRepository) {
-        this.userRepository = userRepository;
+    private static Repository userRepository = MemoryUserRepository.getInstance();
+    public SignUpController() {
     }
     @Override
     public void execute(HttpRequest request, HttpResponse response) throws IOException {

@@ -1,4 +1,4 @@
-package webserver;
+package enums;
 public enum HttpHeader {
     CONTENT_TYPE("Content-Type"),
     CONTENT_LENGTH("Content-Length"),

@@ -25,13 +25,10 @@ public class RequestMapper {
     }
 
     private void initializeControllers() {
-        // DI 완료!!!
-        LoginController loginController = new LoginController(userRepository);
-        SignUpController signUpController = new SignUpController(userRepository);
 
         // controllers 맵에 등록
-        controllers.put("/user/signup", signUpController);
-        controllers.put("/user/login", loginController);
+        controllers.put("/user/signup", new SignUpController());
+        controllers.put("/user/login", new LoginController());
         controllers.put("/user/userList", new ListController());
         controllers.put("/", new HomeController());
     }

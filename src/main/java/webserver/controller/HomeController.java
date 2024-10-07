@@ -2,7 +2,7 @@ package webserver.controller;
 
 import webserver.HttpRequest;
 import webserver.HttpResponse;
-import webserver.URLPath;
+import enums.URLPath;
 
 import java.io.IOException;
 
