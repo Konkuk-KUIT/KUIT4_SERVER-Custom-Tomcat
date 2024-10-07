@@ -15,13 +15,12 @@ public class ListController implements Controller {
         if (isLoggedIn(request)) {
             response.forward(HTTP_LIST_HTML.getValue());
         } else {
-            response.forward(HTTP_LOGIN_HTML.getValue());
+            response.redirect(HTTP_LOGIN_HTML.getValue(), false);
         }
     }
 
-    private static boolean isLoggedIn(HttpRequest request) {
+    private boolean isLoggedIn(HttpRequest request) {
         String cookieHeader = request.getHeader("Cookie");
-        System.out.println("Cookie Header: " + cookieHeader);  // 디버그용 로그 출력
         boolean isLoggedIn = cookieHeader != null && cookieHeader.contains("logined=true");
         return isLoggedIn;
     }

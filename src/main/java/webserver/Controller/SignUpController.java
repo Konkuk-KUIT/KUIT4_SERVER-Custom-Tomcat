@@ -25,6 +25,8 @@ public class SignUpController implements Controller {
         }
     }
 
+
+
     private void handleGetSignup(HttpRequest request, HttpResponse response) throws IOException {
         Map<String, String> params = request.parseQueryString();
 
