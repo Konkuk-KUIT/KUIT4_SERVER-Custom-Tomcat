@@ -1,34 +1,38 @@
 package webserver;
 
 import webserver.Controller.*;
-
+import java.util.HashMap;
+import java.util.Map;
 import static webserver.enums.HttpUrl.*;
 
 public class RequestMapper {
+    private static final Map<String, Controller> controllers = new HashMap<>();
+
+    static {
+        controllers.put(HTTP_ROOT.getValue(), new HomeController());
+        controllers.put(HTTP_USER_LIST.getValue(), new ListController());
+        controllers.put(HTTP_LIST_HTML.getValue(), new ListController());
+        controllers.put(HTTP_USER_SIGNUP.getValue(), new SignUpController());
+        controllers.put(HTTP_LOGIN.getValue(), new LoginController());
+    }
 
     static Controller getController(HttpRequest request) {
         String path = request.getPath();
 
-        if (path.equals("/")) {
-            return new HomeController();
+        // 먼저 정확한 매칭을 확인
+        if (controllers.containsKey(path)) {
+            return controllers.get(path);
         }
-        // 두 가지 경우에 ListController로 가게 설정
-        if (path.equals(HTTP_USER_LIST.getValue()) || path.equals(HTTP_LIST_HTML.getValue())) {
-            return new ListController();
-        }
-        if (path.startsWith(HTTP_USER_SIGNUP.getValue())) {
-            return new SignUpController();
-        }
-        if (path.equals("/user/login")) {
-            return new LoginController();
-        }
-        if (path.endsWith(".html")) {
+
+        // 마지막으로 endsWith 확인
+        if (path.endsWith(HTTP_END_HTML.getValue())) {
             return new ForwardController();
         }
-        if (path.endsWith(".css")) {
+        if (path.endsWith(HTTP_END_CSS.getValue())) {
             return new CssController();
         }
 
+        // 기본값 반환
         return new ForwardController();
     }
 }
