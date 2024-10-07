@@ -2,9 +2,7 @@ package webserver.Controller;
 
 import webserver.HttpRequest;
 import webserver.HttpResponse;
-
 import java.io.IOException;
-
 import static webserver.enums.HttpUrl.HTTP_LIST_HTML;
 import static webserver.enums.HttpUrl.HTTP_LOGIN_HTML;
 

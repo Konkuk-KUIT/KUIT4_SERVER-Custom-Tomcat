@@ -4,10 +4,8 @@ import db.MemoryUserRepository;
 import model.User;
 import webserver.HttpRequest;
 import webserver.HttpResponse;
-
 import java.io.IOException;
 import java.util.Map;
-
 import static webserver.enums.HttpMethod.HTTP_POST;
 import static webserver.enums.HttpUrl.HTTP_INDEX_HTML;
 
@@ -24,7 +22,6 @@ public class SignUpController implements Controller {
             handleGetSignup(request, response);
         }
     }
-
 
 
     private void handleGetSignup(HttpRequest request, HttpResponse response) throws IOException {

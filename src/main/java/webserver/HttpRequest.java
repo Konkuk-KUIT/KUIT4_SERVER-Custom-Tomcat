@@ -4,7 +4,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-
 import static webserver.enums.HttpMethod.HTTP_POST;
 
 public class HttpRequest {
@@ -82,7 +81,7 @@ public class HttpRequest {
             }
         }
     }
-    
+
     //request 출력
     @Override
     public String toString() {

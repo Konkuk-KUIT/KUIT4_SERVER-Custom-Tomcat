@@ -4,12 +4,9 @@ import db.MemoryUserRepository;
 import model.User;
 import webserver.HttpRequest;
 import webserver.HttpResponse;
-
 import java.io.IOException;
 import java.util.Map;
-
-import static webserver.enums.HttpUrl.HTTP_INDEX_HTML;
-import static webserver.enums.HttpUrl.HTTP_LOGIN_FAILD_HTML;
+import static webserver.enums.HttpUrl.*;
 
 public class LoginController implements Controller {
     private MemoryUserRepository userRepository = MemoryUserRepository.getInstance();

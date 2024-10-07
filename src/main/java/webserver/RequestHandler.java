@@ -1,7 +1,6 @@
 package webserver;
 
 import webserver.Controller.Controller;
-
 import java.io.*;
 import java.net.Socket;
 import java.util.Arrays;
@@ -24,7 +23,7 @@ public class RequestHandler implements Runnable {
 
             HttpRequest request = new HttpRequest(br);
             HttpResponse response = new HttpResponse(out);
-            
+
             //client의 request 전체 출력
             //log.info("Complete HTTP Request:\n" + request.toString());
 
