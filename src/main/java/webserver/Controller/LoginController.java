@@ -9,7 +9,7 @@ import java.util.Map;
 import static webserver.enums.HttpUrl.*;
 
 public class LoginController implements Controller {
-    private MemoryUserRepository userRepository = MemoryUserRepository.getInstance();
+    private final MemoryUserRepository userRepository = MemoryUserRepository.getInstance();
 
     @Override
     public void execute(HttpRequest request, HttpResponse response) throws IOException {
@@ -19,9 +19,9 @@ public class LoginController implements Controller {
         
         //userRepository에 있는지 확인
         if (user != null && user.getPassword().equals(params.get("password"))) {
-            response.redirect(HTTP_INDEX_HTML.getValue(), true);
-        } else {
-            response.redirect(HTTP_LOGIN_FAILD_HTML.getValue(), false);
+             response.redirect(HTTP_INDEX_HTML.getValue(), true);
+             return;
         }
+        response.redirect(HTTP_LOGIN_FAILD_HTML.getValue(), false);
     }
 }

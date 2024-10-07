@@ -9,7 +9,7 @@ import static webserver.enums.HttpMethod.HTTP_POST;
 public class HttpRequest {
     private String method;
     private String path;
-    private Map<String, String> headers;
+    private final Map<String, String> headers;
     private String body;
 
     public HttpRequest(BufferedReader br) throws IOException {

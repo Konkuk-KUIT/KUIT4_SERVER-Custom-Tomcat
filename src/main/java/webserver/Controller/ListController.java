@@ -12,9 +12,9 @@ public class ListController implements Controller {
         //로그인 되어있으면 리스트 HTML 전송
         if (isLoggedIn(request)) {
             response.forward(HTTP_LIST_HTML.getValue());
-        } else {
-            response.redirect(HTTP_LOGIN_HTML.getValue(), false);
+            return;
         }
+        response.redirect(HTTP_LOGIN_HTML.getValue(), false);
     }
 
     private boolean isLoggedIn(HttpRequest request) {
